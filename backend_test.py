@@ -28,6 +28,8 @@ class CashOutAiTester:
                 response = requests.get(url, headers=headers, params=params)
             elif method == 'POST':
                 response = requests.post(url, json=data, headers=headers, params=params)
+            elif method == 'PUT':
+                response = requests.put(url, json=data, headers=headers, params=params)
 
             success = response.status_code == expected_status
             if success:
@@ -198,15 +200,53 @@ class CashOutAiTester:
             print(f"User performance: {response}")
             return response
         return None
+        
+    def update_avatar(self, user_id, avatar_url):
+        """Update user avatar URL"""
+        success, response = self.run_test(
+            "Update avatar URL",
+            "POST",
+            f"users/{user_id}/avatar",
+            200,
+            params={"avatar_url": avatar_url}
+        )
+        
+        if success:
+            print(f"Avatar updated successfully for user {user_id}")
+            return True
+        return False
+        
+    def update_profile(self, user_id, username, email, avatar_url=None):
+        """Update user profile"""
+        data = {
+            "username": username,
+            "email": email
+        }
+        
+        if avatar_url:
+            data["avatar_url"] = avatar_url
+            
+        success, response = self.run_test(
+            "Update user profile",
+            "PUT",
+            f"users/{user_id}/profile",
+            200,
+            data=data
+        )
+        
+        if success and response:
+            print(f"Profile updated successfully for user {user_id}")
+            return response
+        return None
 
-def main():
+def test_profile_picture_functionality():
     # Get the backend URL from the frontend .env file
     backend_url = "https://5440b074-8074-4941-8acd-0ee2d4c4bbdb.preview.emergentagent.com"
     
     # Create tester instance
     tester = CashOutAiTester(backend_url)
     
-    print("\n===== TESTING CASHOUTAI TRADING TEAM CHAT APP =====\n")
+    print("\n===== TESTING PROFILE PICTURE FUNCTIONALITY =====\n")
     
     # Test 1: Login as admin
     print("\n----- Test 1: Admin Login -----")
@@ -215,79 +255,89 @@ def main():
         print("❌ Admin login failed, stopping tests")
         return 1
     
-    # Test 2: Register new users
+    # Test 2: Register a new user
     print("\n----- Test 2: User Registration -----")
     timestamp = int(time.time())
-    user1 = tester.register_user(f"user1_{timestamp}", f"user1_{timestamp}@example.com", "password123")
-    user2 = tester.register_user(f"user2_{timestamp}", f"user2_{timestamp}@example.com", "password123")
+    test_user = tester.register_user(f"testuser_{timestamp}", f"testuser_{timestamp}@example.com", "password123")
     
-    if not user1 or not user2:
+    if not test_user:
         print("❌ User registration failed, stopping tests")
         return 1
     
-    # Test 3: Get pending users
-    print("\n----- Test 3: Get Pending Users -----")
+    # Test 3: Approve the user
+    print("\n----- Test 3: Approve User -----")
     pending_users = tester.get_pending_users()
     
-    # Test 4: Approve users
-    print("\n----- Test 4: Approve Users -----")
     if pending_users:
         for user in pending_users:
-            if user['username'] == user1['username'] or user['username'] == user2['username']:
+            if user['username'] == test_user['username']:
                 tester.approve_user(user['id'], True)
     
-    # Test 5: Login approved users
-    print("\n----- Test 5: Login Approved Users -----")
-    user1_login = tester.login_user(user1['username'], "password123")
-    user2_login = tester.login_user(user2['username'], "password123")
+    # Test 4: Login as the approved user
+    print("\n----- Test 4: Login Approved User -----")
+    user_login = tester.login_user(test_user['username'], "password123")
     
-    if not user1_login or not user2_login:
+    if not user_login:
         print("❌ User login failed, stopping tests")
         return 1
     
-    # Test 6: Send messages with stock tickers
-    print("\n----- Test 6: Send Messages with Stock Tickers -----")
-    tester.send_message(admin['id'], "Welcome to the team! Let's discuss $TSLA and $AAPL today.")
-    tester.send_message(user1_login['id'], "I think $TSLA is going to break out soon!")
-    tester.send_message(user2_login['id'], "I'm more bullish on $AAPL than $TSLA right now.")
+    # Test 5: Update avatar URL
+    print("\n----- Test 5: Update Avatar URL -----")
+    test_avatar_url = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+    avatar_updated = tester.update_avatar(user_login['id'], test_avatar_url)
     
-    # Test 7: Get messages
-    print("\n----- Test 7: Get Messages -----")
+    if not avatar_updated:
+        print("❌ Avatar update failed")
+    
+    # Test 6: Update profile with avatar URL
+    print("\n----- Test 6: Update Profile -----")
+    updated_profile = tester.update_profile(
+        user_login['id'],
+        f"updated_{test_user['username']}",
+        user_login['email'],
+        test_avatar_url
+    )
+    
+    if not updated_profile:
+        print("❌ Profile update failed - This endpoint might not be implemented in the backend")
+    
+    # Test 7: Send a message to check if avatar appears
+    print("\n----- Test 7: Send Message with Avatar -----")
+    message = tester.send_message(user_login['id'], "Testing message with avatar")
+    
+    if message:
+        print(f"Message sent with avatar_url: {message.get('avatar_url', 'None')}")
+        if message.get('avatar_url') == test_avatar_url:
+            print("✅ Avatar URL is correctly included in the message")
+        else:
+            print("❌ Avatar URL is not correctly included in the message")
+    
+    # Test 8: Get messages to verify avatar in messages
+    print("\n----- Test 8: Verify Avatar in Messages -----")
     messages = tester.get_messages()
     
-    # Verify stock ticker highlighting
-    ticker_messages = [msg for msg in messages if msg.get('highlighted_tickers')]
-    if ticker_messages:
-        print(f"✅ Found {len(ticker_messages)} messages with highlighted tickers")
-        for msg in ticker_messages:
-            print(f"  - Message: '{msg['content']}' has tickers: {msg['highlighted_tickers']}")
-    else:
-        print("❌ No messages with highlighted tickers found")
+    user_messages = [msg for msg in messages if msg.get('user_id') == user_login['id']]
+    if user_messages:
+        for msg in user_messages:
+            if msg.get('avatar_url') == test_avatar_url:
+                print(f"✅ Message has correct avatar URL: {msg.get('avatar_url')}")
+            else:
+                print(f"❌ Message has incorrect avatar URL: {msg.get('avatar_url', 'None')}")
     
-    # Test 8: Create paper trades
-    print("\n----- Test 8: Create Paper Trades -----")
-    tester.create_paper_trade(user1_login['id'], "TSLA", "BUY", 10, 250.50, "Initial position")
-    tester.create_paper_trade(user1_login['id'], "AAPL", "BUY", 20, 180.75, "Apple looks good")
-    tester.create_paper_trade(user1_login['id'], "TSLA", "SELL", 5, 275.25, "Taking partial profits")
+    # Test 9: Test removing avatar URL
+    print("\n----- Test 9: Remove Avatar URL -----")
+    avatar_removed = tester.update_avatar(user_login['id'], "")
     
-    # Test 9: Get user trades
-    print("\n----- Test 9: Get User Trades -----")
-    user1_trades = tester.get_user_trades(user1_login['id'])
-    
-    # Test 10: Get user performance
-    print("\n----- Test 10: Get User Performance -----")
-    user1_performance = tester.get_user_performance(user1_login['id'])
-    
-    if user1_performance:
-        print(f"Total Profit: ${user1_performance.get('total_profit', 0)}")
-        print(f"Win Percentage: {user1_performance.get('win_percentage', 0)}%")
-        print(f"Trades Count: {user1_performance.get('trades_count', 0)}")
-        print(f"Average Gain: ${user1_performance.get('average_gain', 0)}")
+    if not avatar_removed:
+        print("❌ Avatar removal failed")
     
     # Print results
     print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
     
     return 0 if tester.tests_passed == tester.tests_run else 1
+
+def main():
+    return test_profile_picture_functionality()
 
 if __name__ == "__main__":
     sys.exit(main())
