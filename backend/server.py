@@ -178,6 +178,8 @@ class PaperTradeCreate(BaseModel):
     quantity: int
     price: float
     notes: Optional[str] = None
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
 
 # Utility function to extract stock tickers from message
 def extract_stock_tickers(content: str) -> List[str]:
