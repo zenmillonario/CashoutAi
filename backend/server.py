@@ -401,29 +401,10 @@ async def upload_avatar(user_id: str, avatar_url: str):
     
     return {"message": "Avatar updated successfully"}
 
-@api_router.put("/users/{user_id}/profile")
-async def update_profile(user_id: str, profile_data: dict):
-    """Update user profile information"""
-    user = await db.users.find_one({"id": user_id})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Only allow updating certain fields
-    allowed_fields = ["username", "email", "avatar_url"]
-    update_data = {k: v for k, v in profile_data.items() if k in allowed_fields}
-    
-    if update_data:
-        result = await db.users.update_one(
-            {"id": user_id},
-            {"$set": update_data}
-        )
-        
-        if result.modified_count == 0:
-            raise HTTPException(status_code=400, detail="Failed to update profile")
-    
-    # Return updated user
-    updated_user = await db.users.find_one({"id": user_id})
-    return User(**updated_user)
+@api_router.get("/users/{user_id}/performance")
+async def get_user_performance(user_id: str):
+    """Get performance metrics for a user"""
+    return await calculate_user_performance(user_id)
 
 # Create default admin user on startup
 @app.on_event("startup")
