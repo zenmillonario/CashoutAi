@@ -631,110 +631,180 @@ function App() {
 
         {/* Practice Tab */}
         {activeTab === 'practice' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-            {/* Trade Form */}
-            <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
-              <h2 className="text-2xl font-bold text-white mb-6">Paper Trading</h2>
-              <form onSubmit={submitTrade} className="space-y-4">
-                <div>
-                  <label className="block text-gray-300 mb-2">Stock Symbol</label>
-                  <input
-                    type="text"
-                    placeholder="TSLA"
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={tradeForm.symbol}
-                    onChange={(e) => setTradeForm({...tradeForm, symbol: e.target.value.toUpperCase()})}
-                    required
-                  />
+          <div className="space-y-6">
+            {/* Open Positions */}
+            {openPositions.length > 0 && (
+              <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
+                <h2 className="text-2xl font-bold text-white mb-6">📊 Open Positions</h2>
+                <div className="space-y-4">
+                  {openPositions.map((position) => (
+                    <div key={position.id} className="bg-white/5 p-4 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-4">
+                          <div className="text-white font-bold text-lg">{position.symbol}</div>
+                          <div className="text-gray-300">
+                            {position.quantity} shares @ ${position.avg_price}
+                          </div>
+                          <div className="text-gray-400 text-sm">
+                            Opened: {new Date(position.opened_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <div className="text-white font-semibold">
+                              Current: ${position.current_price || 'Loading...'}
+                            </div>
+                            <div className={`text-sm font-bold ${
+                              position.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {position.unrealized_pnl >= 0 ? '+' : ''}${position.unrealized_pnl || '0.00'} 
+                              {position.current_price && position.avg_price && (
+                                <span className="ml-2">
+                                  ({((position.current_price - position.avg_price) / position.avg_price * 100).toFixed(2)}%)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <button
+                            onClick={() => closePosition(position.id, position.symbol)}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                          >
+                            Close Position
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 
-                <div>
-                  <label className="block text-gray-300 mb-2">Action</label>
-                  <select
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={tradeForm.action}
-                    onChange={(e) => setTradeForm({...tradeForm, action: e.target.value})}
-                  >
-                    <option value="BUY">Buy</option>
-                    <option value="SELL">Sell</option>
-                  </select>
+                {/* Total Portfolio P&L */}
+                <div className="mt-6 p-4 bg-white/10 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-semibold">Total Unrealized P&L:</span>
+                    <span className={`text-xl font-bold ${
+                      openPositions.reduce((sum, pos) => sum + (pos.unrealized_pnl || 0), 0) >= 0 
+                        ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {openPositions.reduce((sum, pos) => sum + (pos.unrealized_pnl || 0), 0) >= 0 ? '+' : ''}
+                      ${openPositions.reduce((sum, pos) => sum + (pos.unrealized_pnl || 0), 0).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Trade Form */}
+              <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
+                <h2 className="text-2xl font-bold text-white mb-6">📈 Paper Trading</h2>
+                <form onSubmit={submitTrade} className="space-y-4">
                   <div>
-                    <label className="block text-gray-300 mb-2">Quantity</label>
+                    <label className="block text-gray-300 mb-2">Stock Symbol</label>
                     <input
-                      type="number"
-                      placeholder="100"
+                      type="text"
+                      placeholder="TSLA"
                       className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={tradeForm.quantity}
-                      onChange={(e) => setTradeForm({...tradeForm, quantity: e.target.value})}
+                      value={tradeForm.symbol}
+                      onChange={(e) => setTradeForm({...tradeForm, symbol: e.target.value.toUpperCase()})}
                       required
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-gray-300 mb-2">Price</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="250.00"
+                    <label className="block text-gray-300 mb-2">Action</label>
+                    <select
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={tradeForm.action}
+                      onChange={(e) => setTradeForm({...tradeForm, action: e.target.value})}
+                    >
+                      <option value="BUY">Buy</option>
+                      <option value="SELL">Sell</option>
+                    </select>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-300 mb-2">Quantity</label>
+                      <input
+                        type="number"
+                        placeholder="100"
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={tradeForm.quantity}
+                        onChange={(e) => setTradeForm({...tradeForm, quantity: e.target.value})}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-gray-300 mb-2">Price</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="250.00"
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={tradeForm.price}
+                        onChange={(e) => setTradeForm({...tradeForm, price: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-300 mb-2">Notes (Optional)</label>
+                    <textarea
+                      placeholder="Trade notes..."
                       className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={tradeForm.price}
-                      onChange={(e) => setTradeForm({...tradeForm, price: e.target.value})}
-                      required
+                      value={tradeForm.notes}
+                      onChange={(e) => setTradeForm({...tradeForm, notes: e.target.value})}
+                      rows="3"
                     />
                   </div>
-                </div>
-                
-                <div>
-                  <label className="block text-gray-300 mb-2">Notes (Optional)</label>
-                  <textarea
-                    placeholder="Trade notes..."
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={tradeForm.notes}
-                    onChange={(e) => setTradeForm({...tradeForm, notes: e.target.value})}
-                    rows="3"
-                  />
-                </div>
-                
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-200"
-                >
-                  Record Trade
-                </button>
-              </form>
-            </div>
+                  
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-200"
+                  >
+                    Record Trade
+                  </button>
+                </form>
+              </div>
 
-            {/* Recent Trades */}
-            <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
-              <h2 className="text-2xl font-bold text-white mb-6">Recent Trades</h2>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {userTrades.map((trade) => (
-                  <div key={trade.id} className="bg-white/5 p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-3">
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                          trade.action === 'BUY' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                        }`}>
-                          {trade.action}
-                        </span>
-                        <span className="text-white font-semibold">{trade.symbol}</span>
-                        <span className="text-gray-300">{trade.quantity} shares</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-white font-semibold">${trade.price}</div>
-                        <div className="text-xs text-gray-400">
-                          {new Date(trade.timestamp).toLocaleDateString()}
+              {/* Recent Trades */}
+              <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
+                <h2 className="text-2xl font-bold text-white mb-6">📋 Recent Trades</h2>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {userTrades.map((trade) => (
+                    <div key={trade.id} className="bg-white/5 p-4 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                            trade.action === 'BUY' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {trade.action}
+                          </span>
+                          <span className="text-white font-semibold">{trade.symbol}</span>
+                          <span className="text-gray-300">{trade.quantity} shares</span>
+                          {trade.is_closed && (
+                            <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
+                              CLOSED
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-white font-semibold">${trade.price}</div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(trade.timestamp).toLocaleDateString()}
+                          </div>
                         </div>
                       </div>
+                      {trade.notes && (
+                        <div className="mt-2 text-sm text-gray-400">{trade.notes}</div>
+                      )}
                     </div>
-                    {trade.notes && (
-                      <div className="mt-2 text-sm text-gray-400">{trade.notes}</div>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
