@@ -19,6 +19,11 @@ function App() {
   const [userTrades, setUserTrades] = useState([]);
   const [userPerformance, setUserPerformance] = useState(null);
   const [openPositions, setOpenPositions] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [filteredMessages, setFilteredMessages] = useState([]);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editProfileForm, setEditProfileForm] = useState({
     username: '',
@@ -30,7 +35,8 @@ function App() {
     action: 'BUY',
     quantity: '',
     price: '',
-    notes: ''
+    notes: '',
+    stop_loss: ''
   });
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
