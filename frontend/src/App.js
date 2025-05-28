@@ -149,10 +149,18 @@ function App() {
     if (currentUser) {
       loadMessages();
       loadUserTrades();
+      loadOpenPositions();
       loadUserPerformance();
       if (currentUser.is_admin) {
         loadPendingUsers();
       }
+      
+      // Set up interval to refresh positions every 30 seconds
+      const interval = setInterval(() => {
+        loadOpenPositions();
+      }, 30000);
+      
+      return () => clearInterval(interval);
     }
   }, [currentUser]);
 
