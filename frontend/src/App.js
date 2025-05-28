@@ -50,14 +50,19 @@ function App() {
       ws.onopen = () => {
         setIsConnected(true);
         console.log('WebSocket connected successfully');
+        // Send a heartbeat to establish connection
+        ws.send(JSON.stringify({ type: 'heartbeat', message: 'ping' }));
       };
 
       ws.onmessage = (event) => {
         console.log('WebSocket message received:', event.data);
+        // Any message received means connection is active
+        setIsConnected(true);
+        
         try {
           const data = JSON.parse(event.data);
           
-          if (data.type === 'connection') {
+          if (data.type === 'connection' || data.type === 'heartbeat') {
             // Connection confirmed
             setIsConnected(true);
             console.log('WebSocket connection confirmed');
@@ -86,6 +91,13 @@ function App() {
           // Even if message parsing fails, connection is working
           setIsConnected(true);
         }
+        
+        // Send periodic heartbeat to keep connection alive
+        setTimeout(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'heartbeat', message: 'ping' }));
+          }
+        }, 30000); // Every 30 seconds
       };
 
       ws.onerror = (error) => {
