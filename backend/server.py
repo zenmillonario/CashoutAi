@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime
 import json
 import re
+from enum import Enum
 
 
 ROOT_DIR = Path(__file__).parent
@@ -53,7 +54,25 @@ class ConnectionManager:
             except:
                 pass
 
+    async def send_admin_notification(self, message: str):
+        """Send notifications to all connected admins"""
+        admin_users = await db.users.find({"is_admin": True}).to_list(1000)
+        admin_ids = [user["id"] for user in admin_users]
+        
+        for user_id in admin_ids:
+            if user_id in self.user_connections:
+                try:
+                    await self.user_connections[user_id].send_text(message)
+                except:
+                    pass
+
 manager = ConnectionManager()
+
+# Define Enums
+class UserStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 # Define Models
 class User(BaseModel):
@@ -61,11 +80,15 @@ class User(BaseModel):
     username: str
     email: str
     is_admin: bool = False
+    status: UserStatus = UserStatus.PENDING
     avatar_url: Optional[str] = None
     total_profit: float = 0.0
     win_percentage: float = 0.0
     trades_count: int = 0
+    average_gain: float = 0.0
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    approved_at: Optional[datetime] = None
+    approved_by: Optional[str] = None
 
 class UserCreate(BaseModel):
     username: str
@@ -75,6 +98,11 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+class UserApproval(BaseModel):
+    user_id: str
+    approved: bool
+    admin_id: str
 
 class Message(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -106,12 +134,92 @@ class StockTicker(BaseModel):
     change: Optional[float] = None
     change_percent: Optional[str] = None
 
+class PaperTrade(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    symbol: str
+    action: str  # "BUY" or "SELL"
+    quantity: int
+    price: float
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    notes: Optional[str] = None
+
+class PaperTradeCreate(BaseModel):
+    symbol: str
+    action: str
+    quantity: int
+    price: float
+    notes: Optional[str] = None
+
 # Utility function to extract stock tickers from message
 def extract_stock_tickers(content: str) -> List[str]:
     """Extract stock tickers that start with $ from message content"""
     pattern = r'\$([A-Z]{1,5})'
     matches = re.findall(pattern, content.upper())
     return matches
+
+# Utility function to calculate user trading performance
+async def calculate_user_performance(user_id: str) -> dict:
+    """Calculate trading performance metrics for a user"""
+    trades = await db.paper_trades.find({"user_id": user_id}).to_list(1000)
+    
+    if not trades:
+        return {
+            "total_profit": 0.0,
+            "win_percentage": 0.0,
+            "trades_count": 0,
+            "average_gain": 0.0
+        }
+    
+    # Group trades by symbol to calculate profit/loss
+    positions = {}
+    completed_trades = []
+    
+    for trade in sorted(trades, key=lambda x: x["timestamp"]):
+        symbol = trade["symbol"]
+        if symbol not in positions:
+            positions[symbol] = {"shares": 0, "total_cost": 0}
+        
+        if trade["action"] == "BUY":
+            positions[symbol]["shares"] += trade["quantity"]
+            positions[symbol]["total_cost"] += trade["quantity"] * trade["price"]
+        elif trade["action"] == "SELL" and positions[symbol]["shares"] > 0:
+            # Calculate profit/loss for this sell
+            avg_cost = positions[symbol]["total_cost"] / positions[symbol]["shares"] if positions[symbol]["shares"] > 0 else 0
+            sell_quantity = min(trade["quantity"], positions[symbol]["shares"])
+            profit_loss = (trade["price"] - avg_cost) * sell_quantity
+            
+            completed_trades.append({
+                "profit_loss": profit_loss,
+                "is_profitable": profit_loss > 0
+            })
+            
+            # Update position
+            positions[symbol]["shares"] -= sell_quantity
+            if positions[symbol]["shares"] > 0:
+                positions[symbol]["total_cost"] = (positions[symbol]["total_cost"] / positions[symbol]["shares"]) * positions[symbol]["shares"]
+            else:
+                positions[symbol]["total_cost"] = 0
+    
+    if not completed_trades:
+        return {
+            "total_profit": 0.0,
+            "win_percentage": 0.0,
+            "trades_count": len(trades),
+            "average_gain": 0.0
+        }
+    
+    total_profit = sum(trade["profit_loss"] for trade in completed_trades)
+    winning_trades = sum(1 for trade in completed_trades if trade["is_profitable"])
+    win_percentage = (winning_trades / len(completed_trades)) * 100 if completed_trades else 0
+    average_gain = total_profit / len(completed_trades) if completed_trades else 0
+    
+    return {
+        "total_profit": round(total_profit, 2),
+        "win_percentage": round(win_percentage, 2),
+        "trades_count": len(trades),
+        "average_gain": round(average_gain, 2)
+    }
 
 # API Routes
 
@@ -122,11 +230,24 @@ async def register_user(user_data: UserCreate):
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
     
-    # Create new user (in production, hash the password!)
+    # Check if email already exists
+    existing_email = await db.users.find_one({"email": user_data.email})
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already exists")
+    
+    # Create new user with pending status (in production, hash the password!)
     user_dict = user_data.dict()
     del user_dict['password']  # Don't store password in this simple version
-    user = User(**user_dict)
+    user = User(**user_dict, status=UserStatus.PENDING)
     await db.users.insert_one(user.dict())
+    
+    # Notify admins about new registration
+    await manager.send_admin_notification(json.dumps({
+        "type": "new_registration",
+        "message": f"New user {user.username} has registered and is awaiting approval",
+        "user": user.dict()
+    }, default=str))
+    
     return user
 
 @api_router.post("/users/login", response_model=User)
@@ -134,41 +255,65 @@ async def login_user(login_data: UserLogin):
     user = await db.users.find_one({"username": login_data.username})
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return User(**user)
+    
+    user_obj = User(**user)
+    
+    # Check if user is approved
+    if user_obj.status != UserStatus.APPROVED:
+        if user_obj.status == UserStatus.PENDING:
+            raise HTTPException(status_code=403, detail="Account pending admin approval")
+        elif user_obj.status == UserStatus.REJECTED:
+            raise HTTPException(status_code=403, detail="Account has been rejected")
+    
+    return user_obj
 
 @api_router.get("/users", response_model=List[User])
 async def get_users():
     users = await db.users.find().to_list(1000)
     return [User(**user) for user in users]
 
-@api_router.post("/teams", response_model=Team)
-async def create_team(team_data: TeamCreate):
-    team = Team(
-        name=team_data.name,
-        admin_ids=[team_data.admin_id],
-        member_ids=[team_data.admin_id]
-    )
-    await db.teams.insert_one(team.dict())
-    return team
+@api_router.get("/users/pending", response_model=List[User])
+async def get_pending_users():
+    """Get all users pending approval - admin only"""
+    users = await db.users.find({"status": UserStatus.PENDING}).to_list(1000)
+    return [User(**user) for user in users]
 
-@api_router.get("/teams", response_model=List[Team])
-async def get_teams():
-    teams = await db.teams.find().to_list(1000)
-    return [Team(**team) for team in teams]
-
-@api_router.post("/teams/{team_id}/join")
-async def join_team(team_id: str, user_id: str):
-    team = await db.teams.find_one({"id": team_id})
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
+@api_router.post("/users/approve")
+async def approve_user(approval: UserApproval):
+    """Approve or reject a user - admin only"""
+    # Verify admin status (in production, use proper JWT auth)
+    admin = await db.users.find_one({"id": approval.admin_id})
+    if not admin or not admin.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
     
-    # Add user to team if not already a member
-    if user_id not in team.get("member_ids", []):
-        await db.teams.update_one(
-            {"id": team_id},
-            {"$push": {"member_ids": user_id}}
-        )
-    return {"message": "Joined team successfully"}
+    # Update user status
+    new_status = UserStatus.APPROVED if approval.approved else UserStatus.REJECTED
+    update_data = {
+        "status": new_status,
+        "approved_by": approval.admin_id,
+        "approved_at": datetime.utcnow()
+    }
+    
+    result = await db.users.update_one(
+        {"id": approval.user_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get updated user
+    user = await db.users.find_one({"id": approval.user_id})
+    status_text = "approved" if approval.approved else "rejected"
+    
+    # Notify all admins
+    await manager.send_admin_notification(json.dumps({
+        "type": "user_approval",
+        "message": f"User {user['username']} has been {status_text}",
+        "user": user
+    }, default=str))
+    
+    return {"message": f"User {status_text} successfully"}
 
 @api_router.post("/messages", response_model=Message)
 async def create_message(message_data: MessageCreate):
@@ -176,6 +321,10 @@ async def create_message(message_data: MessageCreate):
     user = await db.users.find_one({"id": message_data.user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user is approved
+    if user.get("status") != UserStatus.APPROVED:
+        raise HTTPException(status_code=403, detail="Only approved users can send messages")
     
     # Extract stock tickers
     tickers = extract_stock_tickers(message_data.content)
@@ -191,7 +340,10 @@ async def create_message(message_data: MessageCreate):
     await db.messages.insert_one(message.dict())
     
     # Broadcast message to all connected users
-    await manager.broadcast(json.dumps(message.dict(), default=str))
+    await manager.broadcast(json.dumps({
+        "type": "message",
+        "data": message.dict()
+    }, default=str))
     
     return message
 
@@ -201,6 +353,57 @@ async def get_messages(limit: int = 50):
     # Reverse to show oldest first
     messages.reverse()
     return [Message(**message) for message in messages]
+
+@api_router.post("/trades", response_model=PaperTrade)
+async def create_paper_trade(trade_data: PaperTradeCreate, user_id: str):
+    """Create a new paper trade"""
+    # Verify user exists and is approved
+    user = await db.users.find_one({"id": user_id})
+    if not user or user.get("status") != UserStatus.APPROVED:
+        raise HTTPException(status_code=403, detail="User not found or not approved")
+    
+    trade = PaperTrade(
+        user_id=user_id,
+        **trade_data.dict()
+    )
+    
+    await db.paper_trades.insert_one(trade.dict())
+    
+    # Update user performance metrics
+    performance = await calculate_user_performance(user_id)
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": performance}
+    )
+    
+    return trade
+
+@api_router.get("/trades/{user_id}", response_model=List[PaperTrade])
+async def get_user_trades(user_id: str):
+    """Get all trades for a user"""
+    trades = await db.paper_trades.find({"user_id": user_id}).sort("timestamp", -1).to_list(1000)
+    return [PaperTrade(**trade) for trade in trades]
+
+@api_router.get("/users/{user_id}/performance")
+async def get_user_performance(user_id: str):
+    """Get performance metrics for a user"""
+    return await calculate_user_performance(user_id)
+
+# Create default admin user on startup
+@app.on_event("startup")
+async def create_default_admin():
+    # Check if any admin exists
+    admin_exists = await db.users.find_one({"is_admin": True})
+    if not admin_exists:
+        # Create default admin
+        admin_user = User(
+            username="admin",
+            email="admin@cashoutai.com",
+            is_admin=True,
+            status=UserStatus.APPROVED
+        )
+        await db.users.insert_one(admin_user.dict())
+        print("Created default admin user: admin")
 
 # WebSocket endpoint
 @app.websocket("/ws/{user_id}")
