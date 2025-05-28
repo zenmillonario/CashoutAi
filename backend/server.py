@@ -175,6 +175,129 @@ def extract_stock_tickers(content: str) -> List[str]:
     matches = re.findall(pattern, content.upper())
     return matches
 
+# Utility function to get stock price (mock for now - can integrate with Alpha Vantage later)
+async def get_current_stock_price(symbol: str) -> float:
+    """Get current stock price (mock implementation for now)"""
+    # Mock prices for demonstration - in production, integrate with Alpha Vantage or similar
+    mock_prices = {
+        "TSLA": 250.75,
+        "AAPL": 185.20,
+        "MSFT": 420.50,
+        "NVDA": 875.30,
+        "GOOGL": 142.80,
+        "AMZN": 155.90,
+        "META": 485.60,
+        "NFLX": 425.20,
+        "AMD": 198.40,
+        "INTC": 45.60
+    }
+    # Add some random variation to simulate price movement
+    import random
+    base_price = mock_prices.get(symbol.upper(), 100.0)
+    variation = random.uniform(-0.05, 0.05)  # ±5% variation
+    return round(base_price * (1 + variation), 2)
+
+# Utility function to manage positions
+async def update_or_create_position(user_id: str, symbol: str, action: str, quantity: int, price: float, trade_id: str):
+    """Update existing position or create new one"""
+    existing_position = await db.positions.find_one({
+        "user_id": user_id,
+        "symbol": symbol.upper(),
+        "is_open": True
+    })
+    
+    if action == "BUY":
+        if existing_position:
+            # Add to existing position
+            new_quantity = existing_position["quantity"] + quantity
+            new_avg_price = ((existing_position["avg_price"] * existing_position["quantity"]) + (price * quantity)) / new_quantity
+            
+            await db.positions.update_one(
+                {"id": existing_position["id"]},
+                {"$set": {
+                    "quantity": new_quantity,
+                    "avg_price": round(new_avg_price, 2)
+                }}
+            )
+            
+            # Update trade with position_id
+            await db.paper_trades.update_one(
+                {"id": trade_id},
+                {"$set": {"position_id": existing_position["id"]}}
+            )
+            
+            return existing_position["id"]
+        else:
+            # Create new position
+            position = Position(
+                user_id=user_id,
+                symbol=symbol.upper(),
+                quantity=quantity,
+                avg_price=price,
+                entry_price=price
+            )
+            await db.positions.insert_one(position.dict())
+            
+            # Update trade with position_id
+            await db.paper_trades.update_one(
+                {"id": trade_id},
+                {"$set": {"position_id": position.id}}
+            )
+            
+            return position.id
+    
+    elif action == "SELL" and existing_position:
+        if quantity >= existing_position["quantity"]:
+            # Close entire position
+            await db.positions.update_one(
+                {"id": existing_position["id"]},
+                {"$set": {
+                    "is_open": False,
+                    "closed_at": datetime.utcnow(),
+                    "quantity": 0
+                }}
+            )
+            
+            # Update trade with position_id
+            await db.paper_trades.update_one(
+                {"id": trade_id},
+                {"$set": {"position_id": existing_position["id"], "is_closed": True}}
+            )
+        else:
+            # Partial close
+            new_quantity = existing_position["quantity"] - quantity
+            await db.positions.update_one(
+                {"id": existing_position["id"]},
+                {"$set": {"quantity": new_quantity}}
+            )
+            
+            # Update trade with position_id
+            await db.paper_trades.update_one(
+                {"id": trade_id},
+                {"$set": {"position_id": existing_position["id"]}}
+            )
+        
+        return existing_position["id"]
+    
+    return None
+
+# Utility function to update position P&L
+async def update_positions_pnl(user_id: str):
+    """Update current P&L for all open positions"""
+    open_positions = await db.positions.find({"user_id": user_id, "is_open": True}).to_list(1000)
+    
+    for position in open_positions:
+        current_price = await get_current_stock_price(position["symbol"])
+        unrealized_pnl = (current_price - position["avg_price"]) * position["quantity"]
+        
+        await db.positions.update_one(
+            {"id": position["id"]},
+            {"$set": {
+                "current_price": current_price,
+                "unrealized_pnl": round(unrealized_pnl, 2)
+            }}
+        )
+
 # Utility function to calculate user trading performance
 async def calculate_user_performance(user_id: str) -> dict:
     """Calculate trading performance metrics for a user"""
