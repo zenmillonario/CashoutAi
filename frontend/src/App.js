@@ -18,6 +18,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('chat');
   const [userTrades, setUserTrades] = useState([]);
   const [userPerformance, setUserPerformance] = useState(null);
+  const [openPositions, setOpenPositions] = useState([]);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editProfileForm, setEditProfileForm] = useState({
     username: '',
