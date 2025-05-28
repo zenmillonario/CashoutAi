@@ -152,6 +152,8 @@ class PaperTrade(BaseModel):
     notes: Optional[str] = None
     position_id: Optional[str] = None  # Links to open position
     is_closed: bool = False
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
 
 class Position(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -162,10 +164,13 @@ class Position(BaseModel):
     entry_price: float
     current_price: Optional[float] = None
     unrealized_pnl: Optional[float] = None
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
     is_open: bool = True
     opened_at: datetime = Field(default_factory=datetime.utcnow)
     closed_at: Optional[datetime] = None
     notes: Optional[str] = None
+    auto_close_reason: Optional[str] = None  # "STOP_LOSS", "TAKE_PROFIT", "MANUAL"
 
 class PaperTradeCreate(BaseModel):
     symbol: str
