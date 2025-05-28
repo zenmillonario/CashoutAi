@@ -126,6 +126,51 @@ const PortfolioTab = ({
                     </button>
                   </div>
                 </div>
+                
+                {/* Stop Loss & Take Profit Indicators */}
+                {(position.stop_loss || position.take_profit) && (
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    {position.stop_loss && (
+                      <div className="flex items-center space-x-2 px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-lg">
+                        <span className="text-red-400 text-sm">🛑 Stop Loss:</span>
+                        <span className="text-red-400 font-semibold text-sm">${position.stop_loss}</span>
+                        {position.current_price && (
+                          <span className="text-xs text-red-300">
+                            ({((position.stop_loss - position.current_price) / position.current_price * 100).toFixed(1)}% away)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {position.take_profit && (
+                      <div className="flex items-center space-x-2 px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-lg">
+                        <span className="text-green-400 text-sm">🎯 Take Profit:</span>
+                        <span className="text-green-400 font-semibold text-sm">${position.take_profit}</span>
+                        {position.current_price && (
+                          <span className="text-xs text-green-300">
+                            ({((position.take_profit - position.current_price) / position.current_price * 100).toFixed(1)}% away)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Auto-close warning if close to triggers */}
+                {position.current_price && (
+                  <div className="mt-2">
+                    {position.stop_loss && position.current_price <= position.stop_loss * 1.02 && (
+                      <div className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded">
+                        ⚠️ Approaching stop loss trigger
+                      </div>
+                    )}
+                    {position.take_profit && position.current_price >= position.take_profit * 0.98 && (
+                      <div className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded">
+                        🎯 Approaching take profit trigger
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
