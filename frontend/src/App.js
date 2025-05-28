@@ -184,6 +184,32 @@ function App() {
     }
   };
 
+  const loadOpenPositions = async () => {
+    if (!currentUser) return;
+    try {
+      const response = await axios.get(`${API}/positions/${currentUser.id}`);
+      setOpenPositions(response.data);
+    } catch (error) {
+      console.error('Error loading positions:', error);
+    }
+  };
+
+  const closePosition = async (positionId, symbol) => {
+    if (!window.confirm(`Are you sure you want to close your ${symbol} position at current market price?`)) {
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API}/positions/${positionId}/close?user_id=${currentUser.id}`);
+      alert(`Position closed! Realized P&L: $${response.data.realized_pnl}`);
+      loadOpenPositions();
+      loadUserTrades();
+      loadUserPerformance();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error closing position');
+    }
+  };
+
   const loadUserPerformance = async () => {
     if (!currentUser) return;
     try {
