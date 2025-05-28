@@ -339,7 +339,23 @@ function App() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md border border-white/20">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">CashOutAi</h1>
+            <div className="flex items-center justify-center mb-4">
+              <img 
+                src="https://images.pexels.com/photos/8370748/pexels-photo-8370748.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop" 
+                alt="CashOutAi Logo" 
+                className="w-16 h-16 rounded-full border-2 border-blue-400/50 mr-3"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-2xl border-2 border-blue-400/50 mr-3 hidden">
+                CA
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-2">CashOutAi</h1>
+              </div>
+            </div>
             <p className="text-gray-300">Trade Together, Win Together</p>
             <p className="text-sm text-yellow-400 mt-2">Private Trading Team</p>
           </div>
