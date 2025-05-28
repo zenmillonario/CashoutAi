@@ -656,38 +656,99 @@ function App() {
         )}
 
         {/* Profile Tab */}
-        {activeTab === 'profile' && userPerformance && (
-          <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
-            <h2 className="text-2xl font-bold text-white mb-6">Trading Performance</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white/5 p-6 rounded-xl text-center">
-                <div className="text-3xl font-bold text-green-400">
-                  ${userPerformance.total_profit.toFixed(2)}
+        {activeTab === 'profile' && (
+          <div className="space-y-6">
+            {/* Profile Header */}
+            <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
+              <div className="flex items-center space-x-6">
+                {/* Profile Picture */}
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/20">
+                    {currentUser?.avatar_url ? (
+                      <img 
+                        src={currentUser.avatar_url} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className={`w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-2xl ${currentUser?.avatar_url ? 'hidden' : 'flex'}`}
+                    >
+                      {currentUser?.username?.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+                  <button
+                    onClick={openEditProfile}
+                    className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm hover:bg-blue-700 transition-colors"
+                  >
+                    ✏️
+                  </button>
                 </div>
-                <div className="text-gray-300 mt-2">Total Profit</div>
-              </div>
-              
-              <div className="bg-white/5 p-6 rounded-xl text-center">
-                <div className="text-3xl font-bold text-blue-400">
-                  {userPerformance.win_percentage.toFixed(1)}%
+                
+                {/* Profile Info */}
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-white">{currentUser?.username}</h2>
+                  <p className="text-gray-300">{currentUser?.email}</p>
+                  <div className="flex items-center space-x-2 mt-2">
+                    {currentUser?.is_admin && (
+                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">
+                        Admin
+                      </span>
+                    )}
+                    <span className="text-green-400 text-sm">
+                      Member since {new Date(currentUser?.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-gray-300 mt-2">Win Rate</div>
-              </div>
-              
-              <div className="bg-white/5 p-6 rounded-xl text-center">
-                <div className="text-3xl font-bold text-purple-400">
-                  {userPerformance.trades_count}
-                </div>
-                <div className="text-gray-300 mt-2">Total Trades</div>
-              </div>
-              
-              <div className="bg-white/5 p-6 rounded-xl text-center">
-                <div className="text-3xl font-bold text-yellow-400">
-                  ${userPerformance.average_gain.toFixed(2)}
-                </div>
-                <div className="text-gray-300 mt-2">Avg Gain</div>
+                
+                <button
+                  onClick={openEditProfile}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Edit Profile
+                </button>
               </div>
             </div>
+
+            {/* Performance Stats */}
+            {userPerformance && (
+              <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
+                <h3 className="text-xl font-bold text-white mb-6">Trading Performance</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="bg-white/5 p-6 rounded-xl text-center">
+                    <div className="text-3xl font-bold text-green-400">
+                      ${userPerformance.total_profit.toFixed(2)}
+                    </div>
+                    <div className="text-gray-300 mt-2">Total Profit</div>
+                  </div>
+                  
+                  <div className="bg-white/5 p-6 rounded-xl text-center">
+                    <div className="text-3xl font-bold text-blue-400">
+                      {userPerformance.win_percentage.toFixed(1)}%
+                    </div>
+                    <div className="text-gray-300 mt-2">Win Rate</div>
+                  </div>
+                  
+                  <div className="bg-white/5 p-6 rounded-xl text-center">
+                    <div className="text-3xl font-bold text-purple-400">
+                      {userPerformance.trades_count}
+                    </div>
+                    <div className="text-gray-300 mt-2">Total Trades</div>
+                  </div>
+                  
+                  <div className="bg-white/5 p-6 rounded-xl text-center">
+                    <div className="text-3xl font-bold text-yellow-400">
+                      ${userPerformance.average_gain.toFixed(2)}
+                    </div>
+                    <div className="text-gray-300 mt-2">Avg Gain</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
