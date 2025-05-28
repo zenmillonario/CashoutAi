@@ -436,16 +436,19 @@ function App() {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               <img 
-                src="https://images.pexels.com/photos/8370748/pexels-photo-8370748.jpeg?auto=compress&cs=tinysrgb&w=40&h=40&fit=crop" 
-                alt="CashOutAi Logo" 
-                className="w-10 h-10 rounded-full border border-blue-400/50"
+                src="https://i.imgur.com/ZPYCiyg.png" 
+                alt="CashOutAi Peacock Logo" 
+                className="w-10 h-10 rounded-lg border border-blue-400/50 bg-white/10 p-0.5"
                 onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
+                  e.target.src = 'https://i.imgur.com/ZPYCiyg.jpg';
+                  e.target.onerror = () => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  };
                 }}
               />
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm border border-blue-400/50 hidden">
-                CA
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg border border-blue-400/50 hidden">
+                🦚
               </div>
               <h1 className="text-2xl font-bold text-white">CashOutAi</h1>
             </div>
