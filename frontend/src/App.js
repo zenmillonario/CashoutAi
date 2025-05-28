@@ -47,7 +47,8 @@ function App() {
     quantity: '',
     price: '',
     notes: '',
-    stop_loss: ''
+    stop_loss: '',
+    take_profit: ''
   });
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
