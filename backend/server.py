@@ -229,7 +229,7 @@ async def get_current_stock_price(symbol: str) -> float:
     return round(base_price * (1 + variation), 2)
 
 # Utility function to manage positions
-async def update_or_create_position(user_id: str, symbol: str, action: str, quantity: int, price: float, trade_id: str):
+async def update_or_create_position(user_id: str, symbol: str, action: str, quantity: int, price: float, trade_id: str, stop_loss: float = None, take_profit: float = None):
     """Update existing position or create new one"""
     existing_position = await db.positions.find_one({
         "user_id": user_id,
@@ -243,12 +243,20 @@ async def update_or_create_position(user_id: str, symbol: str, action: str, quan
             new_quantity = existing_position["quantity"] + quantity
             new_avg_price = ((existing_position["avg_price"] * existing_position["quantity"]) + (price * quantity)) / new_quantity
             
+            # Update stop loss and take profit if provided
+            update_data = {
+                "quantity": new_quantity,
+                "avg_price": round(new_avg_price, 2)
+            }
+            
+            if stop_loss is not None:
+                update_data["stop_loss"] = stop_loss
+            if take_profit is not None:
+                update_data["take_profit"] = take_profit
+            
             await db.positions.update_one(
                 {"id": existing_position["id"]},
-                {"$set": {
-                    "quantity": new_quantity,
-                    "avg_price": round(new_avg_price, 2)
-                }}
+                {"$set": update_data}
             )
             
             # Update trade with position_id
@@ -265,7 +273,9 @@ async def update_or_create_position(user_id: str, symbol: str, action: str, quan
                 symbol=symbol.upper(),
                 quantity=quantity,
                 avg_price=price,
-                entry_price=price
+                entry_price=price,
+                stop_loss=stop_loss,
+                take_profit=take_profit
             )
             await db.positions.insert_one(position.dict())
             
@@ -285,7 +295,8 @@ async def update_or_create_position(user_id: str, symbol: str, action: str, quan
                 {"$set": {
                     "is_open": False,
                     "closed_at": datetime.utcnow(),
-                    "quantity": 0
+                    "quantity": 0,
+                    "auto_close_reason": "MANUAL"
                 }}
             )
             
