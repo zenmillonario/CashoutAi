@@ -175,7 +175,7 @@ function App() {
       let response;
       if (isRegistering) {
         response = await axios.post(`${API}/users/register`, loginForm);
-        alert('Registration successful! Please wait for admin approval.');
+        alert('Registration successful! Please wait for admin approval before you can login.');
         setIsRegistering(false);
         setLoginForm({ username: '', email: '', password: '' });
         return;
