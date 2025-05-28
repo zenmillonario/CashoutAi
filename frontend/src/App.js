@@ -792,6 +792,90 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Edit Profile Modal */}
+      {showEditProfile && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 w-full max-w-md border border-white/20">
+            <h2 className="text-2xl font-bold text-white mb-6">Edit Profile</h2>
+            
+            <form onSubmit={updateProfile} className="space-y-4">
+              <div>
+                <label className="block text-gray-300 mb-2">Username</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={editProfileForm.username}
+                  onChange={(e) => setEditProfileForm({...editProfileForm, username: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-gray-300 mb-2">Email</label>
+                <input
+                  type="email"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={editProfileForm.email}
+                  onChange={(e) => setEditProfileForm({...editProfileForm, email: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-gray-300 mb-2">Avatar URL</label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/your-avatar.jpg"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={editProfileForm.avatar_url}
+                  onChange={(e) => setEditProfileForm({...editProfileForm, avatar_url: e.target.value})}
+                />
+                <p className="text-gray-400 text-sm mt-2">
+                  Paste a URL to your profile picture (JPG, PNG, GIF)
+                </p>
+              </div>
+              
+              {/* Avatar Preview */}
+              {editProfileForm.avatar_url && (
+                <div className="flex items-center space-x-4 p-4 bg-white/5 rounded-lg">
+                  <span className="text-gray-300">Preview:</span>
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
+                    <img 
+                      src={editProfileForm.avatar_url} 
+                      alt="Avatar preview" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm hidden">
+                      {editProfileForm.username?.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex space-x-4 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                >
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEditProfile(false)}
+                  className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
