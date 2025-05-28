@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import ChatTab from './ChatTab';
+import PortfolioTab from './PortfolioTab';
+import FavoritesTab from './FavoritesTab';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
