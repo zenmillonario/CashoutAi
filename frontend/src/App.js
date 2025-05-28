@@ -158,6 +158,18 @@ function App() {
             console.log('WebSocket connection confirmed');
           } else if (data.type === 'message') {
             setMessages(prev => [...prev, data.data]);
+            // Play sound notification for admin messages
+            if (data.data.is_admin && currentUser.id !== data.data.user_id) {
+              playNotificationSound();
+              
+              // Show browser notification for admin messages
+              if (Notification.permission === 'granted') {
+                new Notification(`Admin: ${data.data.username}`, {
+                  body: data.data.content,
+                  icon: data.data.avatar_url || '/favicon.ico'
+                });
+              }
+            }
           } else if (data.type === 'new_registration' && currentUser.is_admin) {
             // Show notification for admins
             if (Notification.permission === 'granted') {
