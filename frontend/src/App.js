@@ -308,6 +308,7 @@ function App() {
       alert(`✅ Trade recorded successfully!\n${tradeForm.action} ${tradeForm.quantity} ${tradeForm.symbol.toUpperCase()} at $${tradeForm.price}\nTotal value: $${tradeValue}`);
       
       loadUserTrades();
+      loadOpenPositions();
       loadUserPerformance();
     } catch (error) {
       alert(error.response?.data?.detail || 'Error recording trade');
