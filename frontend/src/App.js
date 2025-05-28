@@ -291,15 +291,36 @@ function App() {
     return formattedContent;
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    setShowLogin(true);
-    setMessages([]);
-    setActiveTab('chat');
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
+  const updateProfile = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.put(`${API}/users/${currentUser.id}/profile`, editProfileForm);
+      setCurrentUser(response.data);
+      setShowEditProfile(false);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error updating profile');
     }
+  };
+
+  const updateAvatar = async (avatarUrl) => {
+    try {
+      await axios.post(`${API}/users/${currentUser.id}/avatar?avatar_url=${encodeURIComponent(avatarUrl)}`);
+      setCurrentUser({...currentUser, avatar_url: avatarUrl});
+      setEditProfileForm({...editProfileForm, avatar_url: avatarUrl});
+      alert('Avatar updated successfully!');
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error updating avatar');
+    }
+  };
+
+  const openEditProfile = () => {
+    setEditProfileForm({
+      username: currentUser.username,
+      email: currentUser.email,
+      avatar_url: currentUser.avatar_url || ''
+    });
+    setShowEditProfile(true);
   };
 
   if (showLogin) {
