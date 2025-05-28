@@ -144,6 +144,22 @@ class PaperTrade(BaseModel):
     price: float
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     notes: Optional[str] = None
+    position_id: Optional[str] = None  # Links to open position
+    is_closed: bool = False
+
+class Position(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    symbol: str
+    quantity: int
+    avg_price: float
+    entry_price: float
+    current_price: Optional[float] = None
+    unrealized_pnl: Optional[float] = None
+    is_open: bool = True
+    opened_at: datetime = Field(default_factory=datetime.utcnow)
+    closed_at: Optional[datetime] = None
+    notes: Optional[str] = None
 
 class PaperTradeCreate(BaseModel):
     symbol: str
