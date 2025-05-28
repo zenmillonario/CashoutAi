@@ -412,7 +412,8 @@ function App() {
         quantity: '',
         price: '',
         notes: '',
-        stop_loss: ''
+        stop_loss: '',
+        take_profit: ''
       });
       
       // Show success message
