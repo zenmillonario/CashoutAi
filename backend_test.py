@@ -2,6 +2,8 @@ import requests
 import sys
 import time
 import uuid
+import base64
+import os
 from datetime import datetime
 
 class CashOutAiTester:
@@ -16,10 +18,10 @@ class CashOutAiTester:
         self.trades = []
         self.positions = []
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, params=None, files=None):
         """Run a single API test"""
         url = f"{self.api_url}/{endpoint}"
-        headers = {'Content-Type': 'application/json'}
+        headers = {'Content-Type': 'application/json'} if not files else {}
         
         self.tests_run += 1
         print(f"\n🔍 Testing {name}...")
@@ -28,7 +30,10 @@ class CashOutAiTester:
             if method == 'GET':
                 response = requests.get(url, headers=headers, params=params)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers, params=params)
+                if files:
+                    response = requests.post(url, files=files, params=params)
+                else:
+                    response = requests.post(url, json=data, headers=headers, params=params)
             elif method == 'PUT':
                 response = requests.put(url, json=data, headers=headers, params=params)
 
@@ -119,113 +124,146 @@ class CashOutAiTester:
         
         return success
 
-    def create_paper_trade(self, user_id, symbol, action, quantity, price, notes=None):
-        """Create a paper trade"""
+    def upload_avatar(self, user_id, avatar_url):
+        """Update user avatar URL (legacy endpoint)"""
         success, response = self.run_test(
-            f"Create {action} trade for {symbol}",
+            f"Update avatar URL for user {user_id}",
             "POST",
-            "trades",
+            f"users/{user_id}/avatar",
+            200,
+            data={"avatar_url": avatar_url}
+        )
+        
+        return success, response
+
+    def upload_avatar_file(self, user_id, file_path):
+        """Upload profile picture file"""
+        try:
+            with open(file_path, 'rb') as f:
+                file_content = f.read()
+                
+            files = {'file': (os.path.basename(file_path), file_content, 'image/jpeg')}
+            
+            success, response = self.run_test(
+                f"Upload avatar file for user {user_id}",
+                "POST",
+                f"users/{user_id}/avatar-upload",
+                200,
+                files=files,
+                params={"user_id": user_id}
+            )
+            
+            return success, response
+        except Exception as e:
+            print(f"❌ Failed to upload file: {str(e)}")
+            return False, None
+
+    def upload_invalid_avatar_file(self, user_id, file_path, content_type):
+        """Upload invalid profile picture file to test validation"""
+        try:
+            with open(file_path, 'rb') as f:
+                file_content = f.read()
+                
+            files = {'file': (os.path.basename(file_path), file_content, content_type)}
+            
+            success, response = self.run_test(
+                f"Upload invalid avatar file for user {user_id}",
+                "POST",
+                f"users/{user_id}/avatar-upload",
+                400,  # Expecting 400 Bad Request
+                files=files,
+                params={"user_id": user_id}
+            )
+            
+            return success, response
+        except Exception as e:
+            print(f"❌ Failed to upload file: {str(e)}")
+            return False, None
+
+    def create_test_image(self, size_kb=500):
+        """Create a test image file of specified size"""
+        filename = f"/tmp/test_image_{int(time.time())}.jpg"
+        
+        # Create a simple colored image as bytes
+        width, height = 100, 100
+        header = bytes([
+            0xFF, 0xD8,                      # SOI marker
+            0xFF, 0xE0,                      # APP0 marker
+            0x00, 0x10,                      # APP0 header size (16 bytes)
+            0x4A, 0x46, 0x49, 0x46, 0x00,    # Identifier: ASCII "JFIF" followed by 0
+            0x01, 0x01,                      # Version: 1.1
+            0x00,                            # Density units: 0 (no units)
+            0x00, 0x01, 0x00, 0x01,          # Density: 1x1
+            0x00, 0x00                       # Thumbnail: 0x0
+        ])
+        
+        # Create some image data to reach the desired size
+        target_size = size_kb * 1024
+        data_size = target_size - len(header) - 2  # 2 bytes for EOI marker
+        data = bytes([0xFF if i % 2 == 0 else 0x00 for i in range(data_size)])
+        
+        # EOI marker
+        footer = bytes([0xFF, 0xD9])
+        
+        # Write the file
+        with open(filename, 'wb') as f:
+            f.write(header + data + footer)
+        
+        print(f"Created test image: {filename} ({os.path.getsize(filename)} bytes)")
+        return filename
+
+    def create_large_test_image(self, size_mb=2):
+        """Create a large test image file to test size validation"""
+        return self.create_test_image(size_kb=size_mb * 1024)
+
+    def create_test_text_file(self):
+        """Create a test text file to test file type validation"""
+        filename = f"/tmp/test_file_{int(time.time())}.txt"
+        
+        with open(filename, 'w') as f:
+            f.write("This is a test text file, not an image.")
+        
+        print(f"Created test text file: {filename}")
+        return filename
+
+    def change_password(self, user_id, current_password, new_password):
+        """Change user password"""
+        success, response = self.run_test(
+            f"Change password for user {user_id}",
+            "POST",
+            f"users/{user_id}/change-password",
             200,
             data={
-                "symbol": symbol,
-                "action": action,
-                "quantity": quantity,
-                "price": price,
-                "notes": notes
-            },
-            params={"user_id": user_id}
+                "current_password": current_password,
+                "new_password": new_password
+            }
         )
         
-        if success and response:
-            self.trades.append(response)
-            print(f"Trade created: {action} {quantity} {symbol} at ${price}")
-            return response
-        return None
+        return success, response
 
-    def get_user_trades(self, user_id):
-        """Get user trades"""
+    def change_password_with_invalid_current(self, user_id, current_password, new_password):
+        """Test password change with invalid current password"""
         success, response = self.run_test(
-            "Get user trades",
-            "GET",
-            f"trades/{user_id}",
-            200
-        )
-        
-        if success and response:
-            print(f"Retrieved {len(response)} trades for user")
-            return response
-        return []
-
-    def get_user_positions(self, user_id):
-        """Get user positions"""
-        success, response = self.run_test(
-            "Get user positions",
-            "GET",
-            f"positions/{user_id}",
-            200
-        )
-        
-        if success and response:
-            self.positions = response
-            print(f"Retrieved {len(response)} positions for user")
-            return response
-        return []
-
-    def close_position(self, position_id, user_id, close_price=None):
-        """Close a position"""
-        params = {"user_id": user_id}
-        if close_price is not None:
-            params["close_price"] = close_price
-            
-        success, response = self.run_test(
-            f"Close position {position_id}",
+            f"Change password with invalid current password for user {user_id}",
             "POST",
-            f"positions/{position_id}/close",
-            200,
-            params=params
+            f"users/{user_id}/change-password",
+            400,  # Expecting 400 Bad Request
+            data={
+                "current_password": current_password,
+                "new_password": new_password
+            }
         )
         
-        if success and response:
-            print(f"Position closed with P&L: ${response.get('realized_pnl', 'N/A')}")
-            return response
-        return None
+        return success, response
 
-    def get_stock_price(self, symbol):
-        """Get current stock price"""
-        success, response = self.run_test(
-            f"Get stock price for {symbol}",
-            "GET",
-            f"stock-price/{symbol}",
-            200
-        )
-        
-        if success and response:
-            print(f"Current price for {symbol}: ${response.get('price', 'N/A')}")
-            return response
-        return None
-
-    def get_user_performance(self, user_id):
-        """Get user performance metrics"""
-        success, response = self.run_test(
-            "Get user performance",
-            "GET",
-            f"users/{user_id}/performance",
-            200
-        )
-        
-        if success and response:
-            print(f"User performance: {response}")
-            return response
-        return None
-
-def test_position_tracking():
+def test_profile_features():
     # Get the backend URL from the frontend .env file
     backend_url = "https://5440b074-8074-4941-8acd-0ee2d4c4bbdb.preview.emergentagent.com"
     
     # Create tester instance
     tester = CashOutAiTester(backend_url)
     
-    print("\n===== TESTING POSITION TRACKING FUNCTIONALITY =====\n")
+    print("\n===== TESTING PROFILE FEATURES =====\n")
     
     # Test 1: Login as admin
     print("\n----- Test 1: Admin Login -----")
@@ -237,7 +275,7 @@ def test_position_tracking():
     # Test 2: Register a new user
     print("\n----- Test 2: User Registration -----")
     timestamp = int(time.time())
-    test_user = tester.register_user(f"trader_{timestamp}", f"trader_{timestamp}@example.com", "password123")
+    test_user = tester.register_user(f"tester_{timestamp}", f"tester_{timestamp}@example.com", "password123")
     
     if not test_user:
         print("❌ User registration failed, stopping tests")
@@ -260,165 +298,74 @@ def test_position_tracking():
         print("❌ User login failed, stopping tests")
         return 1
     
-    # Test 5: Create BUY trade for TSLA
-    print("\n----- Test 5: Create BUY Trade for TSLA -----")
-    tsla_buy = tester.create_paper_trade(
-        user_login['id'],
-        "TSLA",
-        "BUY",
-        100,
-        250.00,
-        "Initial TSLA position"
-    )
+    # Test 5: Update avatar URL (legacy method)
+    print("\n----- Test 5: Update Avatar URL -----")
+    avatar_url = "https://i.imgur.com/ZPYCiyg.png"
+    success, response = tester.upload_avatar(user_login['id'], avatar_url)
     
-    if not tsla_buy:
-        print("❌ TSLA BUY trade failed, stopping tests")
-        return 1
+    if not success:
+        print("❌ Avatar URL update failed")
     
-    # Test 6: Get user positions to verify position creation
-    print("\n----- Test 6: Verify Position Creation -----")
-    positions = tester.get_user_positions(user_login['id'])
+    # Test 6: Create test image file
+    print("\n----- Test 6: Create Test Image Files -----")
+    test_image = tester.create_test_image()
+    large_test_image = tester.create_large_test_image()
+    test_text_file = tester.create_test_text_file()
     
-    if not positions:
-        print("❌ No positions found after BUY trade")
-        return 1
+    # Test 7: Upload valid image file
+    print("\n----- Test 7: Upload Valid Image File -----")
+    success, response = tester.upload_avatar_file(user_login['id'], test_image)
     
-    tsla_position = next((pos for pos in positions if pos['symbol'] == 'TSLA'), None)
-    if not tsla_position:
-        print("❌ TSLA position not found")
-        return 1
-    
-    print(f"TSLA position created: {tsla_position['quantity']} shares @ ${tsla_position['avg_price']}")
-    print(f"Current P&L: ${tsla_position.get('unrealized_pnl', 'N/A')}")
-    
-    # Test 7: Create another BUY trade for TSLA to test position aggregation
-    print("\n----- Test 7: Add to TSLA Position -----")
-    tsla_buy2 = tester.create_paper_trade(
-        user_login['id'],
-        "TSLA",
-        "BUY",
-        50,
-        260.00,
-        "Adding to TSLA position"
-    )
-    
-    if not tsla_buy2:
-        print("❌ Second TSLA BUY trade failed")
-        return 1
-    
-    # Test 8: Verify position aggregation
-    print("\n----- Test 8: Verify Position Aggregation -----")
-    positions = tester.get_user_positions(user_login['id'])
-    
-    tsla_position = next((pos for pos in positions if pos['symbol'] == 'TSLA'), None)
-    if not tsla_position:
-        print("❌ TSLA position not found after second BUY")
-        return 1
-    
-    expected_quantity = 150  # 100 + 50
-    if tsla_position['quantity'] == expected_quantity:
-        print(f"✅ Position quantity correctly updated to {tsla_position['quantity']}")
+    if not success:
+        print("❌ Valid image upload failed")
     else:
-        print(f"❌ Position quantity incorrect. Expected {expected_quantity}, got {tsla_position['quantity']}")
+        print(f"Avatar URL: {response.get('avatar_url', 'N/A')}")
     
-    # Calculate expected average price: ((100 * 250) + (50 * 260)) / 150 = 253.33
-    expected_avg_price = ((100 * 250.00) + (50 * 260.00)) / 150
-    print(f"Expected avg price: ${expected_avg_price:.2f}, Actual: ${tsla_position['avg_price']}")
+    # Test 8: Upload oversized image file (should fail)
+    print("\n----- Test 8: Upload Oversized Image File (should fail) -----")
+    success, response = tester.upload_invalid_avatar_file(user_login['id'], large_test_image, 'image/jpeg')
     
-    # Test 9: Create BUY trade for AAPL to test multiple positions
-    print("\n----- Test 9: Create AAPL Position -----")
-    aapl_buy = tester.create_paper_trade(
-        user_login['id'],
-        "AAPL",
-        "BUY",
-        200,
-        185.00,
-        "Initial AAPL position"
-    )
-    
-    if not aapl_buy:
-        print("❌ AAPL BUY trade failed")
-        return 1
-    
-    # Test 10: Verify multiple positions
-    print("\n----- Test 10: Verify Multiple Positions -----")
-    positions = tester.get_user_positions(user_login['id'])
-    
-    if len(positions) < 2:
-        print(f"❌ Expected at least 2 positions, got {len(positions)}")
-        return 1
-    
-    print(f"✅ User has {len(positions)} positions")
-    
-    # Test 11: Create SELL trade for partial TSLA position
-    print("\n----- Test 11: Partial Position Close -----")
-    tsla_sell = tester.create_paper_trade(
-        user_login['id'],
-        "TSLA",
-        "SELL",
-        50,
-        270.00,
-        "Selling part of TSLA position"
-    )
-    
-    if not tsla_sell:
-        print("❌ TSLA SELL trade failed")
-        return 1
-    
-    # Test 12: Verify partial position close
-    print("\n----- Test 12: Verify Partial Position Close -----")
-    positions = tester.get_user_positions(user_login['id'])
-    
-    tsla_position = next((pos for pos in positions if pos['symbol'] == 'TSLA'), None)
-    if not tsla_position:
-        print("❌ TSLA position not found after partial SELL")
-        return 1
-    
-    expected_quantity = 100  # 150 - 50
-    if tsla_position['quantity'] == expected_quantity:
-        print(f"✅ Position quantity correctly updated to {tsla_position['quantity']} after partial sell")
+    if success:
+        print("❌ Oversized image upload should have failed but succeeded")
     else:
-        print(f"❌ Position quantity incorrect after partial sell. Expected {expected_quantity}, got {tsla_position['quantity']}")
+        print("✅ Oversized image upload correctly rejected")
     
-    # Test 13: Close position using close endpoint
-    print("\n----- Test 13: Close Position via API -----")
-    close_result = tester.close_position(tsla_position['id'], user_login['id'])
+    # Test 9: Upload non-image file (should fail)
+    print("\n----- Test 9: Upload Non-Image File (should fail) -----")
+    success, response = tester.upload_invalid_avatar_file(user_login['id'], test_text_file, 'text/plain')
     
-    if not close_result:
-        print("❌ Position close failed")
-        return 1
-    
-    # Test 14: Verify position is closed
-    print("\n----- Test 14: Verify Position Closed -----")
-    positions = tester.get_user_positions(user_login['id'])
-    
-    tsla_position = next((pos for pos in positions if pos['symbol'] == 'TSLA'), None)
-    if tsla_position:
-        print(f"❌ TSLA position still found after close: {tsla_position}")
+    if success:
+        print("❌ Non-image file upload should have failed but succeeded")
     else:
-        print("✅ TSLA position successfully closed")
+        print("✅ Non-image file upload correctly rejected")
     
-    # Test 15: Check user performance after trades
-    print("\n----- Test 15: Check User Performance -----")
-    performance = tester.get_user_performance(user_login['id'])
+    # Test 10: Change password with correct current password
+    print("\n----- Test 10: Change Password -----")
+    # In the demo, current password is the username
+    success, response = tester.change_password(user_login['id'], user_login['username'], "NewPassword123")
     
-    if not performance:
-        print("❌ Failed to get user performance")
-        return 1
+    if not success:
+        print("❌ Password change failed")
+    else:
+        print("✅ Password changed successfully")
     
-    print(f"Total profit: ${performance.get('total_profit', 'N/A')}")
-    print(f"Win percentage: {performance.get('win_percentage', 'N/A')}%")
-    print(f"Trades count: {performance.get('trades_count', 'N/A')}")
-    print(f"Average gain: ${performance.get('average_gain', 'N/A')}")
+    # Test 11: Change password with incorrect current password (should fail)
+    print("\n----- Test 11: Change Password with Incorrect Current Password (should fail) -----")
+    success, response = tester.change_password_with_invalid_current(user_login['id'], "WrongPassword", "NewPassword456")
     
-    # Test 16: Get stock price
-    print("\n----- Test 16: Get Stock Price -----")
-    tsla_price = tester.get_stock_price("TSLA")
-    aapl_price = tester.get_stock_price("AAPL")
+    if success:
+        print("❌ Password change with incorrect current password should have failed but succeeded")
+    else:
+        print("✅ Password change with incorrect current password correctly rejected")
     
-    if not tsla_price or not aapl_price:
-        print("❌ Failed to get stock prices")
-        return 1
+    # Clean up test files
+    print("\n----- Cleaning Up Test Files -----")
+    for file_path in [test_image, large_test_image, test_text_file]:
+        try:
+            os.remove(file_path)
+            print(f"Removed {file_path}")
+        except:
+            pass
     
     # Print results
     print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
@@ -426,7 +373,7 @@ def test_position_tracking():
     return 0 if tester.tests_passed == tester.tests_run else 1
 
 def main():
-    return test_position_tracking()
+    return test_profile_features()
 
 if __name__ == "__main__":
     sys.exit(main())
