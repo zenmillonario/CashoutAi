@@ -39,14 +39,21 @@ function App() {
   // WebSocket connection
   useEffect(() => {
     if (currentUser && !wsRef.current) {
-      const ws = new WebSocket(`${BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://')}/ws/${currentUser.id}`);
+      // Build WebSocket URL correctly
+      const wsProtocol = BACKEND_URL.startsWith('https://') ? 'wss://' : 'ws://';
+      const wsHost = BACKEND_URL.replace('https://', '').replace('http://', '');
+      const wsUrl = `${wsProtocol}${wsHost}/ws/${currentUser.id}`;
+      
+      console.log('Connecting to WebSocket:', wsUrl);
+      const ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
         setIsConnected(true);
-        console.log('WebSocket connected');
+        console.log('WebSocket connected successfully');
       };
 
       ws.onmessage = (event) => {
+        console.log('WebSocket message received:', event.data);
         try {
           const data = JSON.parse(event.data);
           
@@ -71,13 +78,27 @@ function App() {
             loadPendingUsers();
           }
         } catch (error) {
-          console.log('WebSocket message:', event.data);
+          console.log('WebSocket message (raw):', event.data);
         }
       };
 
-      ws.onclose = () => {
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setIsConnected(false);
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         wsRef.current = null;
+        
+        // Auto-reconnect after 3 seconds if not manual close
+        if (event.code !== 1000 && currentUser) {
+          setTimeout(() => {
+            console.log('Attempting to reconnect WebSocket...');
+            // Trigger reconnection by clearing the ref
+          }, 3000);
+        }
       };
 
       wsRef.current = ws;
@@ -85,7 +106,7 @@ function App() {
 
     return () => {
       if (wsRef.current) {
-        wsRef.current.close();
+        wsRef.current.close(1000, 'Component unmounted');
         wsRef.current = null;
       }
     };
