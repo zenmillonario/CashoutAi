@@ -409,12 +409,28 @@ async def create_default_admin():
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
     await manager.connect(websocket, user_id)
+    logger.info(f"WebSocket connected for user: {user_id}")
+    
     try:
+        # Send initial connection confirmation
+        await manager.send_personal_message(
+            json.dumps({"type": "connection", "message": f"Connected as user {user_id}"}),
+            websocket
+        )
+        
         while True:
+            # Keep connection alive by receiving ping/pong or heartbeat messages
             data = await websocket.receive_text()
-            # Keep connection alive, actual messaging happens through HTTP API
-            await manager.send_personal_message(f"Connected: {user_id}", websocket)
+            logger.info(f"WebSocket received from {user_id}: {data}")
+            
+            # Echo back to confirm connection is alive
+            await manager.send_personal_message(
+                json.dumps({"type": "heartbeat", "message": "Connection alive"}),
+                websocket
+            )
+            
     except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected for user: {user_id}")
         manager.disconnect(websocket, user_id)
 
 # Include the router in the main app
