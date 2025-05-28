@@ -250,9 +250,12 @@ function App() {
         notes: ''
       });
       
+      // Show success message
+      const tradeValue = (parseInt(tradeForm.quantity) * parseFloat(tradeForm.price)).toFixed(2);
+      alert(`✅ Trade recorded successfully!\n${tradeForm.action} ${tradeForm.quantity} ${tradeForm.symbol.toUpperCase()} at $${tradeForm.price}\nTotal value: $${tradeValue}`);
+      
       loadUserTrades();
       loadUserPerformance();
-      alert('Trade recorded successfully!');
     } catch (error) {
       alert(error.response?.data?.detail || 'Error recording trade');
     }
