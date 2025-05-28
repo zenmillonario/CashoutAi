@@ -510,6 +510,16 @@ async def create_paper_trade(trade_data: PaperTradeCreate, user_id: str):
     
     await db.paper_trades.insert_one(trade.dict())
     
+    # Update or create position
+    await update_or_create_position(
+        user_id=user_id,
+        symbol=trade_data.symbol,
+        action=trade_data.action,
+        quantity=trade_data.quantity,
+        price=trade_data.price,
+        trade_id=trade.id
+    )
+    
     # Update user performance metrics
     performance = await calculate_user_performance(user_id)
     await db.users.update_one(
@@ -518,6 +528,68 @@ async def create_paper_trade(trade_data: PaperTradeCreate, user_id: str):
     )
     
     return trade
+
+@api_router.get("/positions/{user_id}")
+async def get_user_positions(user_id: str):
+    """Get all open positions for a user with current P&L"""
+    # Update P&L first
+    await update_positions_pnl(user_id)
+    
+    # Get updated positions
+    positions = await db.positions.find({"user_id": user_id, "is_open": True}).to_list(1000)
+    return [Position(**position) for position in positions]
+
+@api_router.post("/positions/{position_id}/close")
+async def close_position(position_id: str, user_id: str, close_price: Optional[float] = None):
+    """Close an open position"""
+    position = await db.positions.find_one({"id": position_id, "user_id": user_id, "is_open": True})
+    if not position:
+        raise HTTPException(status_code=404, detail="Position not found")
+    
+    # Use current market price if not provided
+    if close_price is None:
+        close_price = await get_current_stock_price(position["symbol"])
+    
+    # Create a SELL trade to close the position
+    close_trade = PaperTrade(
+        user_id=user_id,
+        symbol=position["symbol"],
+        action="SELL",
+        quantity=position["quantity"],
+        price=close_price,
+        position_id=position_id,
+        is_closed=True,
+        notes=f"Position closed at market price"
+    )
+    
+    await db.paper_trades.insert_one(close_trade.dict())
+    
+    # Close the position
+    realized_pnl = (close_price - position["avg_price"]) * position["quantity"]
+    await db.positions.update_one(
+        {"id": position_id},
+        {"$set": {
+            "is_open": False,
+            "closed_at": datetime.utcnow(),
+            "current_price": close_price,
+            "unrealized_pnl": round(realized_pnl, 2)
+        }}
+    )
+    
+    # Update user performance metrics
+    performance = await calculate_user_performance(user_id)
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": performance}
+    )
+    
+    return {"message": "Position closed successfully", "realized_pnl": round(realized_pnl, 2)}
+
+@api_router.get("/stock-price/{symbol}")
+async def get_stock_price(symbol: str):
+    """Get current stock price for a symbol"""
+    price = await get_current_stock_price(symbol)
+    return {"symbol": symbol.upper(), "price": price}
 
 @api_router.get("/trades/{user_id}", response_model=List[PaperTrade])
 async def get_user_trades(user_id: str):
