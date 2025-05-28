@@ -403,7 +403,9 @@ function App() {
         action: tradeForm.action,
         quantity: parseInt(tradeForm.quantity),
         price: parseFloat(tradeForm.price),
-        notes: tradeForm.notes
+        notes: tradeForm.notes,
+        stop_loss: tradeForm.stop_loss ? parseFloat(tradeForm.stop_loss) : null,
+        take_profit: tradeForm.take_profit ? parseFloat(tradeForm.take_profit) : null
       });
       
       setTradeForm({
