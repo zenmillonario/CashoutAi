@@ -399,7 +399,8 @@ function App() {
         action: 'BUY',
         quantity: '',
         price: '',
-        notes: ''
+        notes: '',
+        stop_loss: ''
       });
       
       // Show success message
