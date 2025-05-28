@@ -934,7 +934,11 @@ function App() {
         {activeTab === 'profile' && (
           <div className="space-y-6">
             {/* Profile Header */}
-            <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
+            <div className={`backdrop-blur-lg rounded-2xl border p-6 ${
+              isDarkTheme 
+                ? 'bg-white/5 border-white/10' 
+                : 'bg-white/80 border-gray-200'
+            }`}>
               <div className="flex items-center space-x-6">
                 {/* Profile Picture */}
                 <div className="relative">
@@ -966,8 +970,12 @@ function App() {
                 
                 {/* Profile Info */}
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-white">{currentUser?.username}</h2>
-                  <p className="text-gray-300">{currentUser?.email}</p>
+                  <h2 className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>
+                    {currentUser?.username}
+                  </h2>
+                  <p className={isDarkTheme ? 'text-gray-300' : 'text-gray-600'}>
+                    {currentUser?.email}
+                  </p>
                   <div className="flex items-center space-x-2 mt-2">
                     {currentUser?.is_admin && (
                       <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">
@@ -991,35 +999,57 @@ function App() {
 
             {/* Performance Stats */}
             {userPerformance && (
-              <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
-                <h3 className="text-xl font-bold text-white mb-6">Trading Performance</h3>
+              <div className={`backdrop-blur-lg rounded-2xl border p-6 ${
+                isDarkTheme 
+                  ? 'bg-white/5 border-white/10' 
+                  : 'bg-white/80 border-gray-200'
+              }`}>
+                <h3 className={`text-xl font-bold mb-6 ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>
+                  Trading Performance
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="bg-white/5 p-6 rounded-xl text-center">
+                  <div className={`p-6 rounded-xl text-center ${
+                    isDarkTheme ? 'bg-white/5' : 'bg-gray-50'
+                  }`}>
                     <div className="text-3xl font-bold text-green-400">
                       ${userPerformance.total_profit.toFixed(2)}
                     </div>
-                    <div className="text-gray-300 mt-2">Total Profit</div>
+                    <div className={`mt-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Total Profit
+                    </div>
                   </div>
                   
-                  <div className="bg-white/5 p-6 rounded-xl text-center">
+                  <div className={`p-6 rounded-xl text-center ${
+                    isDarkTheme ? 'bg-white/5' : 'bg-gray-50'
+                  }`}>
                     <div className="text-3xl font-bold text-blue-400">
                       {userPerformance.win_percentage.toFixed(1)}%
                     </div>
-                    <div className="text-gray-300 mt-2">Win Rate</div>
+                    <div className={`mt-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Win Rate
+                    </div>
                   </div>
                   
-                  <div className="bg-white/5 p-6 rounded-xl text-center">
+                  <div className={`p-6 rounded-xl text-center ${
+                    isDarkTheme ? 'bg-white/5' : 'bg-gray-50'
+                  }`}>
                     <div className="text-3xl font-bold text-purple-400">
                       {userPerformance.trades_count}
                     </div>
-                    <div className="text-gray-300 mt-2">Total Trades</div>
+                    <div className={`mt-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Total Trades
+                    </div>
                   </div>
                   
-                  <div className="bg-white/5 p-6 rounded-xl text-center">
+                  <div className={`p-6 rounded-xl text-center ${
+                    isDarkTheme ? 'bg-white/5' : 'bg-gray-50'
+                  }`}>
                     <div className="text-3xl font-bold text-yellow-400">
                       ${userPerformance.average_gain.toFixed(2)}
                     </div>
-                    <div className="text-gray-300 mt-2">Avg Gain</div>
+                    <div className={`mt-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Avg Gain
+                    </div>
                   </div>
                 </div>
               </div>
