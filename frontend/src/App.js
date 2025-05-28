@@ -494,8 +494,21 @@ function App() {
               <div className="space-y-4">
                 {messages.map((message) => (
                   <div key={message.id} className="flex space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                      {message.username.charAt(0).toUpperCase()}
+                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 flex-shrink-0">
+                      {message.avatar_url ? (
+                        <img 
+                          src={message.avatar_url} 
+                          alt={message.username} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold ${message.avatar_url ? 'hidden' : 'flex'}`}>
+                        {message.username.charAt(0).toUpperCase()}
+                      </div>
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
