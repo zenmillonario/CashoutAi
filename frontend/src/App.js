@@ -41,13 +41,82 @@ function App() {
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Filter messages based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredMessages(messages);
+    } else {
+      const filtered = messages.filter(message =>
+        message.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        message.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        message.highlighted_tickers.some(ticker => 
+          ticker.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+      setFilteredMessages(filtered);
+    }
+  }, [messages, searchQuery]);
+
+  // Load theme preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('cashoutai_theme');
+    if (savedTheme) {
+      setIsDarkTheme(savedTheme === 'dark');
+    }
+  }, []);
+
+  // Load favorites
+  useEffect(() => {
+    if (currentUser) {
+      const savedFavorites = localStorage.getItem(`cashoutai_favorites_${currentUser.id}`);
+      if (savedFavorites) {
+        setFavorites(JSON.parse(savedFavorites));
+      }
+    }
+  }, [currentUser]);
+
+  const toggleTheme = () => {
+    const newTheme = !isDarkTheme;
+    setIsDarkTheme(newTheme);
+    localStorage.setItem('cashoutai_theme', newTheme ? 'dark' : 'light');
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const addToFavorites = (symbol) => {
+    if (!favorites.includes(symbol.toUpperCase())) {
+      const newFavorites = [...favorites, symbol.toUpperCase()];
+      setFavorites(newFavorites);
+      localStorage.setItem(`cashoutai_favorites_${currentUser.id}`, JSON.stringify(newFavorites));
+    }
+  };
+
+  const removeFromFavorites = (symbol) => {
+    const newFavorites = favorites.filter(fav => fav !== symbol.toUpperCase());
+    setFavorites(newFavorites);
+    localStorage.setItem(`cashoutai_favorites_${currentUser.id}`, JSON.stringify(newFavorites));
+  };
+
+  const playNotificationSound = () => {
+    // Create a simple notification sound
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  };
+
+  const addReaction = (messageId, reaction) => {
+    // For now, just show an alert - in a full implementation, this would save to backend
+    alert(`Added reaction ${reaction} to message`);
+  };
 
   // WebSocket connection
   useEffect(() => {
