@@ -234,8 +234,12 @@ function App() {
 
   // Request notification permission
   useEffect(() => {
-    if (currentUser && currentUser.is_admin && Notification.permission === 'default') {
-      Notification.requestPermission();
+    if (currentUser && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          console.log('Notifications enabled for admin alerts and sound notifications');
+        }
+      });
     }
   }, [currentUser]);
 
