@@ -118,6 +118,14 @@ function App() {
     alert(`Added reaction ${reaction} to message`);
   };
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [filteredMessages]);
+
   // WebSocket connection
   useEffect(() => {
     if (currentUser && !wsRef.current) {
