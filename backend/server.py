@@ -621,9 +621,60 @@ async def get_user_trades(user_id: str):
     trades = await db.paper_trades.find({"user_id": user_id}).sort("timestamp", -1).to_list(1000)
     return [PaperTrade(**trade) for trade in trades]
 
+@api_router.post("/users/{user_id}/avatar-upload")
+async def upload_avatar_file(user_id: str, file: UploadFile = File(...)):
+    """Upload profile picture file"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Validate file type
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    # Read and process file
+    file_content = await file.read()
+    avatar_url = process_uploaded_image(file_content)
+    
+    # Update user avatar
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"avatar_url": avatar_url}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Failed to update avatar")
+    
+    return {"message": "Avatar updated successfully", "avatar_url": avatar_url}
+
+@api_router.post("/users/{user_id}/change-password")
+async def change_password(user_id: str, password_data: PasswordChange):
+    """Change user password"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # In this simple implementation, we'll just check if current password matches username
+    # In production, you'd verify against stored password hash
+    if password_data.current_password != user.get("username"):  # Simple validation
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Hash and store new password (in production)
+    hashed_password = hash_password(password_data.new_password)
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"password_hash": hashed_password}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Failed to update password")
+    
+    return {"message": "Password updated successfully"}
+
 @api_router.post("/users/{user_id}/avatar")
 async def upload_avatar(user_id: str, avatar_url: str):
-    """Update user avatar URL"""
+    """Update user avatar URL (legacy endpoint)"""
     user = await db.users.find_one({"id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
