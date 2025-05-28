@@ -616,6 +616,22 @@ function App() {
                 Practice
               </button>
               <button
+                onClick={() => setActiveTab('portfolio')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeTab === 'portfolio' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                Portfolio
+              </button>
+              <button
+                onClick={() => setActiveTab('favorites')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeTab === 'favorites' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                Favorites
+              </button>
+              <button
                 onClick={() => setActiveTab('profile')}
                 className={`px-4 py-2 rounded-lg transition-colors ${
                   activeTab === 'profile' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'
@@ -637,6 +653,27 @@ function App() {
                   )}
                 </button>
               )}
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-2">
+              {activeTab === 'chat' && (
+                <button
+                  onClick={() => setShowSearch(!showSearch)}
+                  className="p-2 bg-white/10 text-gray-300 rounded-lg hover:bg-white/20 transition-colors"
+                  title="Search messages"
+                >
+                  🔍
+                </button>
+              )}
+              
+              <button
+                onClick={toggleTheme}
+                className="p-2 bg-white/10 text-gray-300 rounded-lg hover:bg-white/20 transition-colors"
+                title="Toggle theme"
+              >
+                {isDarkTheme ? '☀️' : '🌙'}
+              </button>
             </div>
             
             <div className="text-right">
