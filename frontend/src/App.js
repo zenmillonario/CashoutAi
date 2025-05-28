@@ -461,6 +461,80 @@ function App() {
     }
   };
 
+  const uploadAvatarFile = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${API}/users/${currentUser.id}/avatar-upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      setCurrentUser({...currentUser, avatar_url: response.data.avatar_url});
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      setShowEditProfile(false);
+      alert('Profile picture uploaded successfully!');
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error uploading avatar');
+    }
+  };
+
+  const changePassword = async (e) => {
+    e.preventDefault();
+    
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      alert('New passwords do not match');
+      return;
+    }
+    
+    if (passwordForm.new_password.length < 6) {
+      alert('New password must be at least 6 characters long');
+      return;
+    }
+    
+    try {
+      await axios.post(`${API}/users/${currentUser.id}/change-password`, {
+        current_password: passwordForm.current_password,
+        new_password: passwordForm.new_password
+      });
+      
+      setPasswordForm({
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      });
+      setShowChangePassword(false);
+      alert('Password changed successfully!');
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error changing password');
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit
+        alert('File size must be less than 1MB');
+        return;
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        alert('File must be an image');
+        return;
+      }
+      
+      setAvatarFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => setAvatarPreview(e.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const openEditProfile = () => {
     setEditProfileForm({
       username: currentUser.username,
