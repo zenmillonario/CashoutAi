@@ -181,6 +181,24 @@ def extract_stock_tickers(content: str) -> List[str]:
     matches = re.findall(pattern, content.upper())
     return matches
 
+# Utility functions for authentication and image processing
+def hash_password(password: str) -> str:
+    """Hash a password for storing in database"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify a password against its hash"""
+    return hash_password(password) == hashed
+
+def process_uploaded_image(file_content: bytes, max_size: int = 1024 * 1024) -> str:
+    """Process uploaded image and return base64 data URL"""
+    if len(file_content) > max_size:
+        raise HTTPException(status_code=400, detail="Image too large (max 1MB)")
+    
+    # Convert to base64 data URL
+    base64_content = base64.b64encode(file_content).decode('utf-8')
+    return f"data:image/jpeg;base64,{base64_content}"
+
 # Utility function to get stock price (mock for now - can integrate with Alpha Vantage later)
 async def get_current_stock_price(symbol: str) -> float:
     """Get current stock price (mock implementation for now)"""
