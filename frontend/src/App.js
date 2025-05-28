@@ -1191,7 +1191,7 @@ function App() {
       {/* Edit Profile Modal */}
       {showEditProfile && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 w-full max-w-md border border-white/20">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 w-full max-w-md border border-white/20 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-6">Edit Profile</h2>
             
             <form onSubmit={updateProfile} className="space-y-4">
@@ -1217,8 +1217,52 @@ function App() {
                 />
               </div>
               
+              {/* Profile Picture Upload */}
               <div>
-                <label className="block text-gray-300 mb-2">Avatar URL</label>
+                <label className="block text-gray-300 mb-2">Profile Picture</label>
+                
+                {/* Current/Preview Avatar */}
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/20">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : currentUser?.avatar_url ? (
+                      <img src={currentUser.avatar_url} alt="Current" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                        {currentUser?.username?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-gray-400 text-xs mt-1">
+                      Upload JPG, PNG, GIF (max 1MB)
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Upload Button */}
+                {avatarFile && (
+                  <button
+                    type="button"
+                    onClick={() => uploadAvatarFile(avatarFile)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 mb-4"
+                  >
+                    Upload New Picture
+                  </button>
+                )}
+              </div>
+              
+              {/* URL Option */}
+              <div>
+                <label className="block text-gray-300 mb-2">Or use Image URL</label>
                 <input
                   type="url"
                   placeholder="https://example.com/your-avatar.jpg"
@@ -1226,19 +1270,16 @@ function App() {
                   value={editProfileForm.avatar_url}
                   onChange={(e) => setEditProfileForm({...editProfileForm, avatar_url: e.target.value})}
                 />
-                <p className="text-gray-400 text-sm mt-2">
-                  Paste a URL to your profile picture (JPG, PNG, GIF)
-                </p>
               </div>
               
-              {/* Avatar Preview */}
-              {editProfileForm.avatar_url && (
+              {/* URL Preview */}
+              {editProfileForm.avatar_url && !avatarFile && (
                 <div className="flex items-center space-x-4 p-4 bg-white/5 rounded-lg">
-                  <span className="text-gray-300">Preview:</span>
+                  <span className="text-gray-300">URL Preview:</span>
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
                     <img 
                       src={editProfileForm.avatar_url} 
-                      alt="Avatar preview" 
+                      alt="URL preview" 
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.style.display = 'none';
@@ -1246,7 +1287,7 @@ function App() {
                       }}
                     />
                     <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm hidden">
-                      {editProfileForm.username?.charAt(0).toUpperCase()}
+                      ❌
                     </div>
                   </div>
                 </div>
@@ -1261,7 +1302,110 @@ function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowEditProfile(false)}
+                  onClick={() => {
+                    setShowEditProfile(false);
+                    setAvatarFile(null);
+                    setAvatarPreview(null);
+                  }}
+                  className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 w-full max-w-md border border-white/20">
+            <h2 className="text-2xl font-bold text-white mb-6">Change Password</h2>
+            
+            <form onSubmit={changePassword} className="space-y-4">
+              <div>
+                <label className="block text-gray-300 mb-2">Current Password</label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={passwordForm.current_password}
+                  onChange={(e) => setPasswordForm({...passwordForm, current_password: e.target.value})}
+                  required
+                />
+                <p className="text-gray-400 text-sm mt-1">
+                  For demo: use your username as current password
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-gray-300 mb-2">New Password</label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={passwordForm.new_password}
+                  onChange={(e) => setPasswordForm({...passwordForm, new_password: e.target.value})}
+                  required
+                  minLength="6"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-gray-300 mb-2">Confirm New Password</label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={passwordForm.confirm_password}
+                  onChange={(e) => setPasswordForm({...passwordForm, confirm_password: e.target.value})}
+                  required
+                  minLength="6"
+                />
+              </div>
+              
+              {/* Password Strength Indicator */}
+              {passwordForm.new_password && (
+                <div className="p-3 bg-white/5 rounded-lg">
+                  <div className="text-sm text-gray-300 mb-2">Password Strength:</div>
+                  <div className="flex space-x-1">
+                    <div className={`h-2 w-full rounded ${
+                      passwordForm.new_password.length >= 6 ? 'bg-green-500' : 'bg-gray-600'
+                    }`}></div>
+                    <div className={`h-2 w-full rounded ${
+                      passwordForm.new_password.length >= 8 ? 'bg-green-500' : 'bg-gray-600'
+                    }`}></div>
+                    <div className={`h-2 w-full rounded ${
+                      /[A-Z]/.test(passwordForm.new_password) ? 'bg-green-500' : 'bg-gray-600'
+                    }`}></div>
+                    <div className={`h-2 w-full rounded ${
+                      /[0-9]/.test(passwordForm.new_password) ? 'bg-green-500' : 'bg-gray-600'
+                    }`}></div>
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {passwordForm.new_password !== passwordForm.confirm_password && passwordForm.confirm_password && (
+                      <span className="text-red-400">Passwords do not match</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex space-x-4 pt-4">
+                <button
+                  type="submit"
+                  disabled={passwordForm.new_password !== passwordForm.confirm_password}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Change Password
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowChangePassword(false);
+                    setPasswordForm({
+                      current_password: '',
+                      new_password: '',
+                      confirm_password: ''
+                    });
+                  }}
                   className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
                 >
                   Cancel
