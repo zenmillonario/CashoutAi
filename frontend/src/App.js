@@ -1070,12 +1070,20 @@ function App() {
                   </div>
                 </div>
                 
-                <button
-                  onClick={openEditProfile}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Edit Profile
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={openEditProfile}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    onClick={() => setShowChangePassword(true)}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Change Password
+                  </button>
+                </div>
               </div>
             </div>
 
