@@ -28,11 +28,19 @@ function App() {
   const [showSearch, setShowSearch] = useState(false);
   const [filteredMessages, setFilteredMessages] = useState([]);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [editProfileForm, setEditProfileForm] = useState({
     username: '',
     email: '',
     avatar_url: ''
   });
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [tradeForm, setTradeForm] = useState({
     symbol: '',
     action: 'BUY',
