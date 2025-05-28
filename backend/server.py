@@ -110,6 +110,7 @@ class Message(BaseModel):
     username: str
     content: str
     is_admin: bool = False
+    avatar_url: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     highlighted_tickers: List[str] = []
 
