@@ -913,27 +913,95 @@ function App() {
                     </div>
                   </div>
                   
-                  {/* Stop Loss */}
-                  <div>
-                    <label className={`block mb-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Stop Loss (Optional)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Enter stop loss price"
-                      className={`w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        isDarkTheme 
-                          ? 'bg-white/10 border border-white/20 text-white placeholder-gray-400' 
-                          : 'bg-white border border-gray-200 text-gray-900 placeholder-gray-500'
-                      }`}
-                      value={tradeForm.stop_loss}
-                      onChange={(e) => setTradeForm({...tradeForm, stop_loss: e.target.value})}
-                    />
-                    <p className={`text-sm mt-1 ${isDarkTheme ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Automatically close position if price drops below this level
-                    </p>
+                  {/* Stop Loss & Take Profit */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={`block mb-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Stop Loss (Optional)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Auto-sell if price drops"
+                        className={`w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 ${
+                          isDarkTheme 
+                            ? 'bg-white/10 border border-white/20 text-white placeholder-gray-400' 
+                            : 'bg-white border border-gray-200 text-gray-900 placeholder-gray-500'
+                        }`}
+                        value={tradeForm.stop_loss}
+                        onChange={(e) => setTradeForm({...tradeForm, stop_loss: e.target.value})}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className={`block mb-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Take Profit (Optional)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Auto-sell when profit reached"
+                        className={`w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                          isDarkTheme 
+                            ? 'bg-white/10 border border-white/20 text-white placeholder-gray-400' 
+                            : 'bg-white border border-gray-200 text-gray-900 placeholder-gray-500'
+                        }`}
+                        value={tradeForm.take_profit}
+                        onChange={(e) => setTradeForm({...tradeForm, take_profit: e.target.value})}
+                      />
+                    </div>
                   </div>
+                  
+                  {/* Order Summary */}
+                  {tradeForm.price && tradeForm.quantity && (
+                    <div className={`p-4 rounded-lg ${
+                      isDarkTheme ? 'bg-white/10' : 'bg-gray-100'
+                    }`}>
+                      <h4 className={`font-semibold mb-3 ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>
+                        📋 Order Summary
+                      </h4>
+                      <div className={`space-y-2 text-sm ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <div className="flex justify-between">
+                          <span>Total Value:</span>
+                          <span className="font-semibold">
+                            ${(parseFloat(tradeForm.price || 0) * parseInt(tradeForm.quantity || 0)).toFixed(2)}
+                          </span>
+                        </div>
+                        
+                        {tradeForm.stop_loss && (
+                          <div className="flex justify-between text-red-400">
+                            <span>🛑 Stop Loss:</span>
+                            <span className="font-semibold">${tradeForm.stop_loss}</span>
+                          </div>
+                        )}
+                        
+                        {tradeForm.take_profit && (
+                          <div className="flex justify-between text-green-400">
+                            <span>🎯 Take Profit:</span>
+                            <span className="font-semibold">${tradeForm.take_profit}</span>
+                          </div>
+                        )}
+                        
+                        {tradeForm.stop_loss && tradeForm.price && (
+                          <div className="flex justify-between text-red-400">
+                            <span>Max Loss:</span>
+                            <span className="font-semibold">
+                              ${((parseFloat(tradeForm.price) - parseFloat(tradeForm.stop_loss)) * parseInt(tradeForm.quantity || 0)).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {tradeForm.take_profit && tradeForm.price && (
+                          <div className="flex justify-between text-green-400">
+                            <span>Target Profit:</span>
+                            <span className="font-semibold">
+                              ${((parseFloat(tradeForm.take_profit) - parseFloat(tradeForm.price)) * parseInt(tradeForm.quantity || 0)).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   
                   <div>
                     <label className={`block mb-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
