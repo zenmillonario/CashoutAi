@@ -323,6 +323,17 @@ function App() {
     setShowEditProfile(true);
   };
 
+  const logout = () => {
+    setCurrentUser(null);
+    setShowLogin(true);
+    setMessages([]);
+    setActiveTab('chat');
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  };
+
   if (showLogin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
