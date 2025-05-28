@@ -565,7 +565,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className={`min-h-screen ${isDarkTheme ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' : 'bg-gradient-to-br from-blue-50 via-purple-50 to-blue-50'}`}>
       {/* Header */}
       <div className="bg-black/20 backdrop-blur-lg border-b border-white/10 p-4">
         <div className="flex items-center justify-between max-w-6xl mx-auto">
