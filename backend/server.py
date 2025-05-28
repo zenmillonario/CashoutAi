@@ -607,7 +607,9 @@ async def create_paper_trade(trade_data: PaperTradeCreate, user_id: str):
         action=trade_data.action,
         quantity=trade_data.quantity,
         price=trade_data.price,
-        trade_id=trade.id
+        trade_id=trade.id,
+        stop_loss=trade_data.stop_loss,
+        take_profit=trade_data.take_profit
     )
     
     # Update user performance metrics
