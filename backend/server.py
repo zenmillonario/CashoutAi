@@ -323,22 +323,70 @@ async def update_or_create_position(user_id: str, symbol: str, action: str, quan
     
     return None
 
-# Utility function to update position P&L
+# Utility function to update position P&L and check for auto-close triggers
 async def update_positions_pnl(user_id: str):
-    """Update current P&L for all open positions"""
+    """Update current P&L for all open positions and check for stop-loss/take-profit triggers"""
     open_positions = await db.positions.find({"user_id": user_id, "is_open": True}).to_list(1000)
     
     for position in open_positions:
         current_price = await get_current_stock_price(position["symbol"])
         unrealized_pnl = (current_price - position["avg_price"]) * position["quantity"]
         
-        await db.positions.update_one(
-            {"id": position["id"]},
-            {"$set": {
-                "current_price": current_price,
-                "unrealized_pnl": round(unrealized_pnl, 2)
-            }}
-        )
+        # Check for auto-close triggers
+        should_close = False
+        close_reason = None
+        
+        # Check stop-loss (price dropped below stop-loss level)
+        if position.get("stop_loss") and current_price <= position["stop_loss"]:
+            should_close = True
+            close_reason = "STOP_LOSS"
+        
+        # Check take-profit (price reached take-profit level)
+        elif position.get("take_profit") and current_price >= position["take_profit"]:
+            should_close = True
+            close_reason = "TAKE_PROFIT"
+        
+        if should_close:
+            # Auto-close the position
+            realized_pnl = (current_price - position["avg_price"]) * position["quantity"]
+            
+            # Create a SELL trade to record the auto-close
+            close_trade = PaperTrade(
+                user_id=user_id,
+                symbol=position["symbol"],
+                action="SELL",
+                quantity=position["quantity"],
+                price=current_price,
+                position_id=position["id"],
+                is_closed=True,
+                notes=f"Auto-closed by {close_reason.replace('_', ' ').lower()} at ${current_price}"
+            )
+            
+            await db.paper_trades.insert_one(close_trade.dict())
+            
+            # Close the position
+            await db.positions.update_one(
+                {"id": position["id"]},
+                {"$set": {
+                    "is_open": False,
+                    "closed_at": datetime.utcnow(),
+                    "current_price": current_price,
+                    "unrealized_pnl": round(realized_pnl, 2),
+                    "auto_close_reason": close_reason
+                }}
+            )
+            
+            print(f"Auto-closed position {position['symbol']} - {close_reason}: ${realized_pnl:.2f}")
+            
+        else:
+            # Update position with current price and P&L
+            await db.positions.update_one(
+                {"id": position["id"]},
+                {"$set": {
+                    "current_price": current_price,
+                    "unrealized_pnl": round(unrealized_pnl, 2)
+                }}
+            )
 
 # Utility function to calculate user trading performance
 async def calculate_user_performance(user_id: str) -> dict:
