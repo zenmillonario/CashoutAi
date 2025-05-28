@@ -335,6 +335,7 @@ async def create_message(message_data: MessageCreate):
         username=user["username"],
         content=message_data.content,
         is_admin=user.get("is_admin", False),
+        avatar_url=user.get("avatar_url"),
         highlighted_tickers=tickers
     )
     
