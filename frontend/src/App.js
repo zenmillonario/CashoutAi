@@ -57,7 +57,11 @@ function App() {
         try {
           const data = JSON.parse(event.data);
           
-          if (data.type === 'message') {
+          if (data.type === 'connection') {
+            // Connection confirmed
+            setIsConnected(true);
+            console.log('WebSocket connection confirmed');
+          } else if (data.type === 'message') {
             setMessages(prev => [...prev, data.data]);
           } else if (data.type === 'new_registration' && currentUser.is_admin) {
             // Show notification for admins
@@ -79,6 +83,8 @@ function App() {
           }
         } catch (error) {
           console.log('WebSocket message (raw):', event.data);
+          // Even if message parsing fails, connection is working
+          setIsConnected(true);
         }
       };
 
