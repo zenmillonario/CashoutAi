@@ -183,9 +183,11 @@ async def send_message(user_id: str, message_data: ChatMessageCreate):
     await db.chat_messages.insert_one(message.dict())
     
     # Broadcast to all connected users
+    message_dict = message.model_dump()
+    message_dict['timestamp'] = message_dict['timestamp'].isoformat()
     await manager.broadcast(json.dumps({
         "type": "new_message",
-        "data": message.dict(default=str)
+        "data": message_dict
     }))
     
     return message
