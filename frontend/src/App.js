@@ -167,11 +167,23 @@ const ChatScreen = ({ user, onLogout }) => {
     }
   };
 
-  const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const updateProfile = async () => {
+    setIsLoading(true);
+    try {
+      await axios.put(`${API}/users/me/${user.id}/profile`, profileData);
+      
+      // Update localStorage
+      const updatedUser = { ...user, ...profileData };
+      localStorage.setItem('cashoutai_desktop_user', JSON.stringify(updatedUser));
+      
+      setShowProfileModal(false);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert('Failed to update profile');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
