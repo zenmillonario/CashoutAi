@@ -6,7 +6,12 @@ import Portfolio from './components/Portfolio';
 import AdminPanel from './components/AdminPanel';
 import Navigation from './components/Navigation';
 import NotificationSystem from './components/NotificationSystem';
+import axios from 'axios';
 import './App.css';
+
+// Backend API configuration
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const API = `${BACKEND_URL}/api`;
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
