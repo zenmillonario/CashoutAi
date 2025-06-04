@@ -244,14 +244,18 @@ function App() {
     };
   }, [currentUser]);
 
-  // Request notification permission
+ // Request notification permission (mobile-safe)
   useEffect(() => {
-    if (currentUser && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          console.log('Notifications enabled for admin alerts and sound notifications');
-        }
-      });
+    if (currentUser && 'Notification' in window && typeof window.Notification !== 'undefined') {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            console.log('Notifications enabled for admin alerts and sound notifications');
+          }
+        });
+      }
+    } else {
+      console.log('Notifications not supported on this device');
     }
   }, [currentUser]);
 
