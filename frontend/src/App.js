@@ -1,15 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 // Simple Login Component
 const LoginScreen = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (username && password) {
-      onLogin({ username, password });
+    if (!username || !password) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.post(`${API}/auth/login`, {
+        username,
+        password
+      });
+
+      if (response.data.success) {
+        onLogin(response.data.user);
+      }
+    } catch (err) {
+      setError('Login failed. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -28,8 +50,9 @@ const LoginScreen = ({ onLogin }) => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              style={{ width: '100%', padding: '12px', background: 'rgba(51, 65, 85, 0.5)', border: '1px solid rgba(71, 85, 105, 0.5)', borderRadius: '12px', color: 'white', fontSize: '16px' }}
+              style={{ width: '100%', padding: '12px', background: 'rgba(51, 65, 85, 0.5)', border: '1px solid rgba(71, 85, 105, 0.5)', borderRadius: '12px', color: 'white', fontSize: '16px', boxSizing: 'border-box' }}
               placeholder="Enter username"
+              disabled={isLoading}
             />
           </div>
 
@@ -39,17 +62,34 @@ const LoginScreen = ({ onLogin }) => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ width: '100%', padding: '12px', background: 'rgba(51, 65, 85, 0.5)', border: '1px solid rgba(71, 85, 105, 0.5)', borderRadius: '12px', color: 'white', fontSize: '16px' }}
+              style={{ width: '100%', padding: '12px', background: 'rgba(51, 65, 85, 0.5)', border: '1px solid rgba(71, 85, 105, 0.5)', borderRadius: '12px', color: 'white', fontSize: '16px', boxSizing: 'border-box' }}
               placeholder="Enter password"
+              disabled={isLoading}
             />
           </div>
 
+          {error && (
+            <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px' }}>
+              <p style={{ color: '#f87171', margin: 0, fontSize: '14px' }}>{error}</p>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={!username || !password}
-            style={{ width: '100%', padding: '12px', background: username && password ? '#3b82f6' : '#6b7280', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: username && password ? 'pointer' : 'not-allowed' }}
+            disabled={!username || !password || isLoading}
+            style={{ 
+              width: '100%', 
+              padding: '12px', 
+              background: (username && password && !isLoading) ? '#3b82f6' : '#6b7280', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '12px', 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              cursor: (username && password && !isLoading) ? 'pointer' : 'not-allowed' 
+            }}
           >
-            Sign In
+            {isLoading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
 
@@ -63,25 +103,70 @@ const LoginScreen = ({ onLogin }) => {
   );
 };
 
-// Simple Chat Component
+// Enhanced Chat Component with real user chat
 const ChatScreen = ({ user, onLogout }) => {
-  const [messages, setMessages] = useState([
-    { id: 1, user: 'Admin', message: '🚀 Welcome to CashOutAI! Private team chat.', timestamp: new Date().toISOString() }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [onlineUsers, setOnlineUsers] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
+  useEffect(() => {
+    loadMessages();
+    loadOnlineUsers();
     
-    const message = {
-      id: Date.now(),
-      user: user.name,
-      message: newMessage.trim(),
-      timestamp: new Date().toISOString()
-    };
+    // Set up periodic refresh for online users
+    const interval = setInterval(loadOnlineUsers, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
+  useEffect(() => {
+    // Scroll to bottom when new messages arrive
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const loadMessages = async () => {
+    try {
+      const response = await axios.get(`${API}/chat/messages`);
+      setMessages(response.data);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
+  };
+
+  const loadOnlineUsers = async () => {
+    try {
+      const response = await axios.get(`${API}/chat/online-users`);
+      setOnlineUsers(response.data.count);
+    } catch (error) {
+      console.error('Failed to load online users:', error);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      await axios.post(`${API}/chat/messages?user_id=${user.id}`, {
+        message: newMessage.trim()
+      });
+      
+      setNewMessage('');
+      // Reload messages to show the new one
+      setTimeout(loadMessages, 100);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -91,14 +176,35 @@ const ChatScreen = ({ user, onLogout }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h1 style={{ color: 'white', margin: 0, fontSize: '20px' }}>Team Chat</h1>
-            <p style={{ color: '#94a3b8', margin: 0, fontSize: '14px' }}>Private Channel</p>
+            <p style={{ color: '#94a3b8', margin: 0, fontSize: '14px' }}>
+              {onlineUsers} user{onlineUsers !== 1 ? 's' : ''} online
+            </p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p style={{ color: 'white', margin: 0, fontSize: '14px' }}>{user.name}</p>
-            <p style={{ color: '#94a3b8', margin: 0, fontSize: '12px' }}>{user.role}</p>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ 
+                width: '32px', 
+                height: '32px', 
+                background: user.profile_picture || '#3b82f6', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                marginRight: '8px',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}>
+                {user.profile_picture ? '' : user.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p style={{ color: 'white', margin: 0, fontSize: '14px' }}>{user.name}</p>
+                <p style={{ color: '#94a3b8', margin: 0, fontSize: '12px' }}>{user.role}</p>
+              </div>
+            </div>
             <button
               onClick={onLogout}
-              style={{ marginTop: '8px', padding: '4px 8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+              style={{ padding: '4px 8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
             >
               Logout
             </button>
@@ -108,29 +214,36 @@ const ChatScreen = ({ user, onLogout }) => {
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-        {messages.map((msg) => (
-          <div key={msg.id} style={{ marginBottom: '16px' }}>
-            <div style={{
-              background: msg.user === user.name ? '#3b82f6' : (msg.user === 'Admin' ? '#ef4444' : '#6b7280'),
-              color: 'white',
-              padding: '12px',
-              borderRadius: '16px',
-              maxWidth: '70%',
-              marginLeft: msg.user === user.name ? 'auto' : '0',
-              marginRight: msg.user === user.name ? '0' : 'auto'
-            }}>
-              {msg.user !== user.name && (
-                <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-                  {msg.user}
-                </div>
-              )}
-              <p style={{ margin: 0, fontSize: '14px' }}>{msg.message}</p>
-              <p style={{ margin: '4px 0 0 0', fontSize: '11px', opacity: 0.7 }}>
-                {new Date(msg.timestamp).toLocaleTimeString()}
-              </p>
-            </div>
+        {messages.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '50px' }}>
+            <p>Welcome to the team chat! Start a conversation below.</p>
           </div>
-        ))}
+        ) : (
+          messages.map((msg) => (
+            <div key={msg.id} style={{ marginBottom: '16px' }}>
+              <div style={{
+                background: msg.user_id === user.id ? '#3b82f6' : (msg.role === 'admin' ? '#ef4444' : '#6b7280'),
+                color: 'white',
+                padding: '12px',
+                borderRadius: '16px',
+                maxWidth: '70%',
+                marginLeft: msg.user_id === user.id ? 'auto' : '0',
+                marginRight: msg.user_id === user.id ? '0' : 'auto'
+              }}>
+                {msg.user_id !== user.id && (
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
+                    {msg.username}
+                  </div>
+                )}
+                <p style={{ margin: 0, fontSize: '14px' }}>{msg.message}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '11px', opacity: 0.7 }}>
+                  {formatTime(msg.timestamp)}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
@@ -147,13 +260,21 @@ const ChatScreen = ({ user, onLogout }) => {
                 sendMessage();
               }
             }}
+            disabled={isLoading}
           />
           <button
             onClick={sendMessage}
-            disabled={!newMessage.trim()}
-            style={{ padding: '12px 16px', background: newMessage.trim() ? '#3b82f6' : '#6b7280', color: 'white', border: 'none', borderRadius: '12px', cursor: newMessage.trim() ? 'pointer' : 'not-allowed' }}
+            disabled={!newMessage.trim() || isLoading}
+            style={{ 
+              padding: '12px 16px', 
+              background: (newMessage.trim() && !isLoading) ? '#3b82f6' : '#6b7280', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '12px', 
+              cursor: (newMessage.trim() && !isLoading) ? 'pointer' : 'not-allowed' 
+            }}
           >
-            Send
+            {isLoading ? '...' : 'Send'}
           </button>
         </div>
       </div>
@@ -166,24 +287,38 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
 
-  const handleLogin = (credentials) => {
-    // Admin login
-    if (credentials.username === 'admin' && credentials.password === 'admin123') {
-      setUser({ name: 'Admin User', role: 'admin' });
-      setIsAuthenticated(true);
-      return;
+  useEffect(() => {
+    // Check if user is already logged in
+    const savedUser = localStorage.getItem('cashoutai_desktop_user');
+    const savedAuth = localStorage.getItem('cashoutai_desktop_auth');
+    
+    if (savedUser && savedAuth === 'true') {
+      try {
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        setIsAuthenticated(true);
+      } catch (error) {
+        // Clear invalid data
+        localStorage.removeItem('cashoutai_desktop_user');
+        localStorage.removeItem('cashoutai_desktop_auth');
+      }
     }
+  }, []);
 
-    // Regular user
-    if (credentials.username && credentials.password) {
-      setUser({ name: credentials.username, role: 'trader' });
-      setIsAuthenticated(true);
-    }
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+    
+    localStorage.setItem('cashoutai_desktop_user', JSON.stringify(userData));
+    localStorage.setItem('cashoutai_desktop_auth', 'true');
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUser(null);
+    
+    localStorage.removeItem('cashoutai_desktop_user');
+    localStorage.removeItem('cashoutai_desktop_auth');
   };
 
   if (!isAuthenticated) {
