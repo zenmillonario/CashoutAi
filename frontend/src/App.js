@@ -176,6 +176,15 @@ const ChatScreen = ({ user, onLogout }) => {
     );
   };
 
+  const loadOnlineUsers = async () => {
+    try {
+      const response = await axios.get(`${API}/chat/online-users`);
+      setOnlineUsers(response.data.count);
+    } catch (error) {
+      console.error('Failed to load online users:', error);
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || isLoading) return;
     
