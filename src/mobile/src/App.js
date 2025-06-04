@@ -71,8 +71,8 @@ function App() {
     setIsAdmin(false);
     setUser(null);
     
-    localStorage.removeItem('cashoutai_user');
-    localStorage.removeItem('cashoutai_auth');
+    localStorage.removeItem('cashoutai_mobile_user');
+    localStorage.removeItem('cashoutai_mobile_auth');
   };
 
   const addNotification = (notification) => {
