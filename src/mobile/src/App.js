@@ -63,11 +63,19 @@ function App() {
     } catch (error) {
       console.error('Login failed:', error);
       // Fallback to local authentication for demo
-      setUser(userData);
-      setIsAuthenticated(true);
-      setIsAdmin(userData.role === 'admin');
+      const user = {
+        id: userData.id || `user_${Date.now()}`,
+        username: userData.username,
+        name: userData.name || userData.username,
+        role: userData.role || 'trader',
+        joinedAt: userData.joinedAt || new Date().toISOString()
+      };
       
-      localStorage.setItem('cashoutai_mobile_user', JSON.stringify(userData));
+      setUser(user);
+      setIsAuthenticated(true);
+      setIsAdmin(user.role === 'admin');
+      
+      localStorage.setItem('cashoutai_mobile_user', JSON.stringify(user));
       localStorage.setItem('cashoutai_mobile_auth', 'true');
     }
   };
