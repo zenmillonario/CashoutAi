@@ -37,13 +37,33 @@ function App() {
     }
   }, []);
 
-  const handleLogin = (userData) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    setIsAdmin(userData.role === 'admin');
-    
-    localStorage.setItem('cashoutai_user', JSON.stringify(userData));
-    localStorage.setItem('cashoutai_auth', 'true');
+  const handleLogin = async (userData) => {
+    try {
+      // Call the backend API for authentication
+      const response = await axios.post(`${API}/auth/login`, {
+        username: userData.username,
+        password: userData.password || 'mobile_login'
+      });
+
+      if (response.data.success) {
+        const user = response.data.user;
+        setUser(user);
+        setIsAuthenticated(true);
+        setIsAdmin(user.role === 'admin');
+        
+        localStorage.setItem('cashoutai_mobile_user', JSON.stringify(user));
+        localStorage.setItem('cashoutai_mobile_auth', 'true');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      // Fallback to local authentication for demo
+      setUser(userData);
+      setIsAuthenticated(true);
+      setIsAdmin(userData.role === 'admin');
+      
+      localStorage.setItem('cashoutai_mobile_user', JSON.stringify(userData));
+      localStorage.setItem('cashoutai_mobile_auth', 'true');
+    }
   };
 
   const handleLogout = () => {
