@@ -146,24 +146,7 @@ const ChatScreen = ({ user, onLogout }) => {
     });
   };
 
-  const updateProfile = async () => {
-    setIsLoading(true);
-    try {
-      await axios.put(`${API}/users/me/${user.id}/profile`, profileData);
-      
-      // Update localStorage
-      const updatedUser = { ...user, ...profileData };
-      localStorage.setItem('cashoutai_desktop_user', JSON.stringify(updatedUser));
-      
-      setShowProfileModal(false);
-      alert('Profile updated successfully!');
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      alert('Failed to update profile');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   const getProfileIcon = (userData) => {
     if (userData.profile_picture) {
