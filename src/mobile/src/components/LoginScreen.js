@@ -15,29 +15,15 @@ const LoginScreen = ({ onLogin }) => {
     setError('');
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check credentials
-      if (credentials.username === 'admin' && credentials.password === 'admin123') {
-        onLogin({
-          id: 'admin_001',
-          username: 'admin',
-          role: 'admin',
-          name: 'Admin User',
-          joinedAt: new Date().toISOString()
-        });
-      } else if (credentials.username && credentials.password) {
-        onLogin({
-          id: `user_${Date.now()}`,
-          username: credentials.username,
-          role: 'trader',
-          name: credentials.username,
-          joinedAt: new Date().toISOString()
-        });
-      } else {
-        setError('Please enter valid credentials');
-      }
+      // Pass the full credentials object to the parent component
+      onLogin({
+        id: credentials.username === 'admin' ? 'admin_001' : `user_${Date.now()}`,
+        username: credentials.username,
+        password: credentials.password, // Include password for API call
+        role: credentials.username === 'admin' ? 'admin' : 'trader',
+        name: credentials.username === 'admin' ? 'Admin User' : credentials.username,
+        joinedAt: new Date().toISOString()
+      });
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
