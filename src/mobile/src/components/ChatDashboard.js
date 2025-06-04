@@ -138,12 +138,13 @@ const ChatDashboard = ({ user, onNotification }) => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <button
                 onClick={() => setShowProfileModal(true)}
-                className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors"
+                className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors touch-button"
+                style={{ minHeight: '40px', minWidth: '40px' }}
               >
-                <Settings className="w-4 h-4 text-slate-400" />
+                <Settings className="w-5 h-5 text-slate-300" />
               </button>
               <div className="text-right">
                 <p className="text-sm text-slate-400">Welcome</p>
