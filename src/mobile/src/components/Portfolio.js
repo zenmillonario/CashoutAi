@@ -122,7 +122,7 @@ const Portfolio = ({ user }) => {
           disabled={isRefreshing}
           className="touch-button bg-slate-700 text-white p-3 rounded-xl"
         >
-          <Refresh className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
