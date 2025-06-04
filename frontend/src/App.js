@@ -1,4 +1,3 @@
-
 ```javascript
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
@@ -63,9 +62,9 @@ function App() {
       const filtered = messages.filter(message =>
         message.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         message.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        message.highlighted_tickers.some(ticker => 
+        (message.highlighted_tickers && message.highlighted_tickers.some(ticker => 
           ticker.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        ))
       );
       setFilteredMessages(filtered);
     }
@@ -73,18 +72,26 @@ function App() {
 
   // Load theme preference
   useEffect(() => {
-    const savedTheme = localStorage.getItem('cashoutai_theme');
-    if (savedTheme) {
-      setIsDarkTheme(savedTheme === 'dark');
+    try {
+      const savedTheme = localStorage.getItem('cashoutai_theme');
+      if (savedTheme) {
+        setIsDarkTheme(savedTheme === 'dark');
+      }
+    } catch (error) {
+      console.log('LocalStorage not available');
     }
   }, []);
 
   // Load favorites
   useEffect(() => {
     if (currentUser) {
-      const savedFavorites = localStorage.getItem(`cashoutai_favorites_${currentUser.id}`);
-      if (savedFavorites) {
-        setFavorites(JSON.parse(savedFavorites));
+      try {
+        const savedFavorites = localStorage.getItem(`cashoutai_favorites_${currentUser.id}`);
+        if (savedFavorites) {
+          setFavorites(JSON.parse(savedFavorites));
+        }
+      } catch (error) {
+        console.log('LocalStorage not available');
       }
     }
   }, [currentUser]);
@@ -92,196 +99,132 @@ function App() {
   const toggleTheme = () => {
     const newTheme = !isDarkTheme;
     setIsDarkTheme(newTheme);
-    localStorage.setItem('cashoutai_theme', newTheme ? 'dark' : 'light');
+    try {
+      localStorage.setItem('cashoutai_theme', newTheme ? 'dark' : 'light');
+    } catch (error) {
+      console.log('LocalStorage not available');
+    }
   };
 
   const addToFavorites = (symbol) => {
     if (!favorites.includes(symbol.toUpperCase())) {
       const newFavorites = [...favorites, symbol.toUpperCase()];
       setFavorites(newFavorites);
-      localStorage.setItem(`cashoutai_favorites_${currentUser.id}`, JSON.stringify(newFavorites));
+      try {
+        localStorage.setItem(`cashoutai_favorites_${currentUser.id}`, JSON.stringify(newFavorites));
+      } catch (error) {
+        console.log('LocalStorage not available');
+      }
     }
   };
 
   const removeFromFavorites = (symbol) => {
     const newFavorites = favorites.filter(fav => fav !== symbol.toUpperCase());
     setFavorites(newFavorites);
-    localStorage.setItem(`cashoutai_favorites_${currentUser.id}`, JSON.stringify(newFavorites));
+    try {
+      localStorage.setItem(`cashoutai_favorites_${currentUser.id}`, JSON.stringify(newFavorites));
+    } catch (error) {
+      console.log('LocalStorage not available');
+    }
   };
 
+  // Simple mobile-safe notification sound
   const playNotificationSound = () => {
-    try {
-      // Create a simple notification sound
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
-    } catch (error) {
-      console.log('Audio notification not supported on this device');
-    }
+    // Completely removed audio context - causes mobile crashes
+    console.log('🔔 New admin message received');
   };
 
   const addReaction = (messageId, reaction) => {
     // For now, just show an alert - in a full implementation, this would save to backend
-    alert(`Added reaction ${reaction} to message`);
+    console.log(`Added reaction ${reaction} to message ${messageId}`);
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    try {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    } catch (error) {
+      // Fallback for older browsers
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView();
+      }
+    }
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [filteredMessages]);
 
-  // WebSocket connection
+  // Simplified WebSocket connection - mobile safe
   useEffect(() => {
     if (currentUser && !wsRef.current) {
-      // Build WebSocket URL correctly
-      const wsProtocol = BACKEND_URL.startsWith('https://') ? 'wss://' : 'ws://';
-      const wsHost = BACKEND_URL.replace('https://', '').replace('http://', '');
-      const wsUrl = `${wsProtocol}${wsHost}/ws/${currentUser.id}`;
-      
-      console.log('Connecting to WebSocket:', wsUrl);
-      const ws = new WebSocket(wsUrl);
-      
-      ws.onopen = () => {
-        setIsConnected(true);
-        console.log('WebSocket connected successfully');
-        // Send a heartbeat to establish connection
-        ws.send(JSON.stringify({ type: 'heartbeat', message: 'ping' }));
-      };
-
-      ws.onmessage = (event) => {
-        console.log('WebSocket message received:', event.data);
-        // Any message received means connection is active
-        setIsConnected(true);
+      try {
+        // Build WebSocket URL correctly
+        const wsProtocol = BACKEND_URL.startsWith('https://') ? 'wss://' : 'ws://';
+        const wsHost = BACKEND_URL.replace('https://', '').replace('http://', '');
+        const wsUrl = `${wsProtocol}${wsHost}/ws/${currentUser.id}`;
         
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.type === 'connection' || data.type === 'heartbeat') {
-            // Connection confirmed
-            setIsConnected(true);
-            console.log('WebSocket connection confirmed');
-          } else if (data.type === 'message') {
-            setMessages(prev => [...prev, data.data]);
-            // Play sound notification for admin messages
-            if (data.data.is_admin && currentUser.id !== data.data.user_id) {
-              playNotificationSound();
-              
-              // Show browser notification for admin messages (mobile-safe)
-              if ('Notification' in window && typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
-                try {
-                  new Notification(`Admin: ${data.data.username}`, {
-                    body: data.data.content,
-                    icon: data.data.avatar_url || '/favicon.ico'
-                  });
-                } catch (error) {
-                  console.log('Browser notifications not supported on this device');
-                }
-              }
-            }
-          } else if (data.type === 'new_registration' && currentUser.is_admin) {
-            // Show notification for admins (mobile-safe)
-            if ('Notification' in window && typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
-              try {
-                new Notification('New User Registration', {
-                  body: data.message,
-                  icon: '/favicon.ico'
-                });
-              } catch (error) {
-                console.log('Browser notifications not supported on this device');
-              }
-            }
-            loadPendingUsers();
-          } else if (data.type === 'user_approval' && currentUser.is_admin) {
-            if ('Notification' in window && typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
-              try {
-                new Notification('User Status Updated', {
-                  body: data.message,
-                  icon: '/favicon.ico'
-                });
-              } catch (error) {
-                console.log('Browser notifications not supported on this device');
-              }
-            }
-            loadPendingUsers();
-          }
-        } catch (error) {
-          console.log('WebSocket message (raw):', event.data);
-          // Even if message parsing fails, connection is working
+        console.log('Connecting to WebSocket:', wsUrl);
+        const ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
           setIsConnected(true);
-        }
-        
-        // Send periodic heartbeat to keep connection alive
-        setTimeout(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'heartbeat', message: 'ping' }));
+          console.log('WebSocket connected successfully');
+        };
+
+        ws.onmessage = (event) => {
+          setIsConnected(true);
+          
+          try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'connection' || data.type === 'heartbeat') {
+              setIsConnected(true);
+            } else if (data.type === 'message') {
+              setMessages(prev => [...prev, data.data]);
+              // Simple sound notification for admin messages
+              if (data.data.is_admin && currentUser.id !== data.data.user_id) {
+                playNotificationSound();
+              }
+            } else if (data.type === 'new_registration' && currentUser.is_admin) {
+              loadPendingUsers();
+            } else if (data.type === 'user_approval' && currentUser.is_admin) {
+              loadPendingUsers();
+            }
+          } catch (error) {
+            setIsConnected(true);
           }
-        }, 30000); // Every 30 seconds
-      };
+        };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        ws.onerror = (error) => {
+          console.log('WebSocket connection issue');
+          setIsConnected(false);
+        };
+
+        ws.onclose = () => {
+          setIsConnected(false);
+          wsRef.current = null;
+        };
+
+        wsRef.current = ws;
+      } catch (error) {
+        console.log('WebSocket not supported');
         setIsConnected(false);
-      };
-
-      ws.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
-        setIsConnected(false);
-        wsRef.current = null;
-        
-        // Auto-reconnect after 3 seconds if not manual close
-        if (event.code !== 1000 && currentUser) {
-          setTimeout(() => {
-            console.log('Attempting to reconnect WebSocket...');
-            // Trigger reconnection by clearing the ref
-          }, 3000);
-        }
-      };
-
-      wsRef.current = ws;
+      }
     }
 
     return () => {
       if (wsRef.current) {
-        wsRef.current.close(1000, 'Component unmounted');
+        try {
+          wsRef.current.close();
+        } catch (error) {
+          console.log('WebSocket close error');
+        }
         wsRef.current = null;
       }
     };
   }, [currentUser]);
 
- // Request notification permission (mobile-safe)
-  useEffect(() => {
-    if (currentUser && 'Notification' in window && typeof window.Notification !== 'undefined') {
-      try {
-        if (Notification.permission === 'default') {
-          Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-              console.log('Notifications enabled for admin alerts and sound notifications');
-            }
-          }).catch(error => {
-            console.log('Notification permission request not supported on this device');
-          });
-        }
-      } catch (error) {
-        console.log('Notifications not supported on this device');
-      }
-    } else {
-      console.log('Notifications not supported on this device');
-    }
-  }, [currentUser]);
+  // Removed notification permission request completely - causes mobile crashes
 
   // Load data on login
   useEffect(() => {
@@ -582,7 +525,11 @@ function App() {
     setMessages([]);
     setActiveTab('chat');
     if (wsRef.current) {
-      wsRef.current.close();
+      try {
+        wsRef.current.close();
+      } catch (error) {
+        console.log('WebSocket close error');
+      }
       wsRef.current = null;
     }
   };
