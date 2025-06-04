@@ -1,3 +1,5 @@
+
+```javascript
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import ChatTab from './ChatTab';
@@ -108,21 +110,25 @@ function App() {
   };
 
   const playNotificationSound = () => {
-    // Create a simple notification sound
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.5);
+    try {
+      // Create a simple notification sound
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+      console.log('Audio notification not supported on this device');
+    }
   };
 
   const addReaction = (messageId, reaction) => {
@@ -174,29 +180,41 @@ function App() {
             if (data.data.is_admin && currentUser.id !== data.data.user_id) {
               playNotificationSound();
               
-              // Show browser notification for admin messages
-              if (Notification.permission === 'granted') {
-                new Notification(`Admin: ${data.data.username}`, {
-                  body: data.data.content,
-                  icon: data.data.avatar_url || '/favicon.ico'
-                });
+              // Show browser notification for admin messages (mobile-safe)
+              if ('Notification' in window && typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
+                try {
+                  new Notification(`Admin: ${data.data.username}`, {
+                    body: data.data.content,
+                    icon: data.data.avatar_url || '/favicon.ico'
+                  });
+                } catch (error) {
+                  console.log('Browser notifications not supported on this device');
+                }
               }
             }
           } else if (data.type === 'new_registration' && currentUser.is_admin) {
-            // Show notification for admins
-            if (Notification.permission === 'granted') {
-              new Notification('New User Registration', {
-                body: data.message,
-                icon: '/favicon.ico'
-              });
+            // Show notification for admins (mobile-safe)
+            if ('Notification' in window && typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
+              try {
+                new Notification('New User Registration', {
+                  body: data.message,
+                  icon: '/favicon.ico'
+                });
+              } catch (error) {
+                console.log('Browser notifications not supported on this device');
+              }
             }
             loadPendingUsers();
           } else if (data.type === 'user_approval' && currentUser.is_admin) {
-            if (Notification.permission === 'granted') {
-              new Notification('User Status Updated', {
-                body: data.message,
-                icon: '/favicon.ico'
-              });
+            if ('Notification' in window && typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
+              try {
+                new Notification('User Status Updated', {
+                  body: data.message,
+                  icon: '/favicon.ico'
+                });
+              } catch (error) {
+                console.log('Browser notifications not supported on this device');
+              }
             }
             loadPendingUsers();
           }
@@ -247,12 +265,18 @@ function App() {
  // Request notification permission (mobile-safe)
   useEffect(() => {
     if (currentUser && 'Notification' in window && typeof window.Notification !== 'undefined') {
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            console.log('Notifications enabled for admin alerts and sound notifications');
-          }
-        });
+      try {
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              console.log('Notifications enabled for admin alerts and sound notifications');
+            }
+          }).catch(error => {
+            console.log('Notification permission request not supported on this device');
+          });
+        }
+      } catch (error) {
+        console.log('Notifications not supported on this device');
       }
     } else {
       console.log('Notifications not supported on this device');
@@ -1496,3 +1520,4 @@ function App() {
 }
 
 export default App;
+```
