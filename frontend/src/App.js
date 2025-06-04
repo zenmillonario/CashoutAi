@@ -139,13 +139,58 @@ const ChatScreen = ({ user, onLogout }) => {
     }
   };
 
-  const loadOnlineUsers = async () => {
+  const formatTime = (timestamp) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const updateProfile = async () => {
+    setIsLoading(true);
     try {
-      const response = await axios.get(`${API}/chat/online-users`);
-      setOnlineUsers(response.data.count);
+      await axios.put(`${API}/users/me/${user.id}/profile`, profileData);
+      
+      // Update localStorage
+      const updatedUser = { ...user, ...profileData };
+      localStorage.setItem('cashoutai_desktop_user', JSON.stringify(updatedUser));
+      
+      setShowProfileModal(false);
+      alert('Profile updated successfully!');
     } catch (error) {
-      console.error('Failed to load online users:', error);
+      console.error('Failed to update profile:', error);
+      alert('Failed to update profile');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const getProfileIcon = (userData) => {
+    if (userData.profile_picture) {
+      return (
+        <img 
+          src={userData.profile_picture} 
+          alt="Profile" 
+          style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+        />
+      );
+    }
+    return (
+      <div style={{ 
+        width: '32px', 
+        height: '32px', 
+        background: '#3b82f6', 
+        borderRadius: '50%', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        color: 'white',
+        fontSize: '14px',
+        fontWeight: 'bold'
+      }}>
+        {userData.name.charAt(0).toUpperCase()}
+      </div>
+    );
   };
 
   const sendMessage = async () => {
