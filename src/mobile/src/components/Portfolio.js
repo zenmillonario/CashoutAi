@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, Refresh } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart, RefreshCw } from 'lucide-react';
 
 const Portfolio = ({ user }) => {
   const [portfolio, setPortfolio] = useState({
