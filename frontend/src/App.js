@@ -316,6 +316,128 @@ const ChatScreen = ({ user, onLogout }) => {
           </button>
         </div>
       </div>
+
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          background: 'rgba(0, 0, 0, 0.5)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          zIndex: 1000 
+        }}>
+          <div style={{ 
+            background: '#1e293b', 
+            borderRadius: '16px', 
+            padding: '24px', 
+            width: '400px', 
+            maxWidth: '90vw' 
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ color: 'white', margin: 0, fontSize: '20px' }}>Update Profile</h2>
+              <button
+                onClick={() => setShowProfileModal(false)}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#94a3b8', 
+                  fontSize: '24px', 
+                  cursor: 'pointer' 
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+              {getProfileIcon({ name: profileData.name, profile_picture: profileData.profile_picture })}
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', color: '#cbd5e1', marginBottom: '8px', fontSize: '14px' }}>
+                Display Name
+              </label>
+              <input
+                type="text"
+                value={profileData.name}
+                onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  background: '#374151', 
+                  border: '1px solid #6b7280', 
+                  borderRadius: '8px', 
+                  color: 'white', 
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Enter your name"
+              />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', color: '#cbd5e1', marginBottom: '8px', fontSize: '14px' }}>
+                Profile Picture URL
+              </label>
+              <input
+                type="url"
+                value={profileData.profile_picture}
+                onChange={(e) => setProfileData(prev => ({ ...prev, profile_picture: e.target.value }))}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  background: '#374151', 
+                  border: '1px solid #6b7280', 
+                  borderRadius: '8px', 
+                  color: 'white', 
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="https://example.com/avatar.jpg"
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setShowProfileModal(false)}
+                style={{ 
+                  flex: 1, 
+                  padding: '12px 16px', 
+                  background: '#6b7280', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '8px', 
+                  fontSize: '16px', 
+                  cursor: 'pointer' 
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={updateProfile}
+                disabled={isLoading || !profileData.name.trim()}
+                style={{ 
+                  flex: 1, 
+                  padding: '12px 16px', 
+                  background: (profileData.name.trim() && !isLoading) ? '#3b82f6' : '#6b7280', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '8px', 
+                  fontSize: '16px', 
+                  cursor: (profileData.name.trim() && !isLoading) ? 'pointer' : 'not-allowed' 
+                }}
+              >
+                {isLoading ? 'Updating...' : 'Update'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
