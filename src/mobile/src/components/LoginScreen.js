@@ -126,14 +126,7 @@ const LoginScreen = ({ onLogin }) => {
           </div>
         </form>
 
-        {/* Demo Credentials */}
-        <div className="mt-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-          <h3 className="text-sm font-medium text-slate-300 mb-2">Demo Credentials:</h3>
-          <div className="space-y-1 text-xs text-slate-400">
-            <p><strong>Admin:</strong> admin / admin123</p>
-            <p><strong>Trader:</strong> Any username / Any password</p>
-          </div>
-        </div>
+        {/* Removed Demo Credentials Section - Hidden as requested */}
 
         {/* Features List */}
         <div className="mt-6 grid grid-cols-2 gap-3 text-xs text-slate-400">
