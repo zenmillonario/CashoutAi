@@ -247,7 +247,7 @@ const ChatScreen = ({ user, onLogout }) => {
       </div>
 
       {/* Input */}
-      <div style={{ background: '#1e293b', padding: '16px', borderTop: '1px solid #475569' }}>
+      <div style={{ background: '#1e293b', padding: '16px', borderTop: '1px solid #475569', position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', gap: '12px' }}>
           <input
             type="text"
@@ -271,7 +271,9 @@ const ChatScreen = ({ user, onLogout }) => {
               color: 'white', 
               border: 'none', 
               borderRadius: '12px', 
-              cursor: (newMessage.trim() && !isLoading) ? 'pointer' : 'not-allowed' 
+              cursor: (newMessage.trim() && !isLoading) ? 'pointer' : 'not-allowed',
+              zIndex: 20,
+              position: 'relative'
             }}
           >
             {isLoading ? '...' : 'Send'}
