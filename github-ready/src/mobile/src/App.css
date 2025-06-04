@@ -1,0 +1,191 @@
+/* Mobile-specific styles */
+.mobile-container {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.mobile-safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Chat styles */
+.chat-container {
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  scroll-behavior: smooth;
+}
+
+.chat-input-container {
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+/* Message bubbles */
+.message-bubble {
+  max-width: 85%;
+  word-wrap: break-word;
+  animation: slideInBottom 0.3s ease-out;
+}
+
+.message-own {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  margin-left: auto;
+}
+
+.message-other {
+  background: rgba(71, 85, 105, 0.8);
+}
+
+.message-admin {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+/* Animations */
+@keyframes slideInBottom {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Touch optimizations */
+.touch-button {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.touch-button:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+/* Input optimizations */
+.mobile-input {
+  font-size: 16px !important;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: rgba(51, 65, 85, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: white;
+  width: 100%;
+}
+
+.mobile-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Portfolio styles */
+.portfolio-card {
+  background: rgba(51, 65, 85, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.profit-positive {
+  color: #10b981;
+}
+
+.profit-negative {
+  color: #ef4444;
+}
+
+/* Admin panel styles */
+.admin-broadcast {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Loading states */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Notification styles */
+.notification-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 1rem;
+  background: rgba(239, 68, 68, 0.95);
+  backdrop-filter: blur(10px);
+  color: white;
+  animation: slideInTop 0.3s ease-out;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.notification-success {
+  background: rgba(16, 185, 129, 0.95);
+  border-bottom-color: rgba(16, 185, 129, 0.3);
+}
+
+.notification-warning {
+  background: rgba(245, 158, 11, 0.95);
+  border-bottom-color: rgba(245, 158, 11, 0.3);
+}
+
+/* Status indicators */
+.status-online {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  animation: pulse 2s infinite;
+}
+
+.status-offline {
+  width: 8px;
+  height: 8px;
+  background: #6b7280;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
