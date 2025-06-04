@@ -21,14 +21,20 @@ function App() {
 
   useEffect(() => {
     // Check if user is already logged in
-    const savedUser = localStorage.getItem('cashoutai_user');
-    const savedAuth = localStorage.getItem('cashoutai_auth');
+    const savedUser = localStorage.getItem('cashoutai_mobile_user');
+    const savedAuth = localStorage.getItem('cashoutai_mobile_auth');
     
     if (savedUser && savedAuth === 'true') {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-      setIsAuthenticated(true);
-      setIsAdmin(userData.role === 'admin');
+      try {
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        setIsAuthenticated(true);
+        setIsAdmin(userData.role === 'admin');
+      } catch (error) {
+        // Clear invalid data
+        localStorage.removeItem('cashoutai_mobile_user');
+        localStorage.removeItem('cashoutai_mobile_auth');
+      }
     }
 
     // Request notification permissions on mobile
