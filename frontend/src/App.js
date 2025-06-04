@@ -217,22 +217,23 @@ const ChatScreen = ({ user, onLogout }) => {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                background: user.profile_picture || '#3b82f6', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                marginRight: '8px',
-                color: 'white',
-                fontSize: '14px',
-                fontWeight: 'bold'
-              }}>
-                {user.profile_picture ? '' : user.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
+              <button
+                onClick={() => setShowProfileModal(true)}
+                style={{ 
+                  padding: '4px 8px', 
+                  background: '#6b7280', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '6px', 
+                  fontSize: '12px', 
+                  cursor: 'pointer',
+                  marginRight: '8px'
+                }}
+              >
+                Settings
+              </button>
+              {getProfileIcon(user)}
+              <div style={{ marginLeft: '8px' }}>
                 <p style={{ color: 'white', margin: 0, fontSize: '14px' }}>{user.name}</p>
                 <p style={{ color: '#94a3b8', margin: 0, fontSize: '12px' }}>{user.role}</p>
               </div>
