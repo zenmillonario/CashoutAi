@@ -103,12 +103,17 @@ const LoginScreen = ({ onLogin }) => {
   );
 };
 
-// Enhanced Chat Component with real user chat
+// Enhanced Chat Component with real user chat and profile settings
 const ChatScreen = ({ user, onLogout }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [onlineUsers, setOnlineUsers] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: user.name,
+    profile_picture: user.profile_picture || ''
+  });
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
