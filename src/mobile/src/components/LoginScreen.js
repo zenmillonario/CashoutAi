@@ -15,6 +15,11 @@ const LoginScreen = ({ onLogin }) => {
     setError('');
 
     try {
+      if (!credentials.username || !credentials.password) {
+        setError('Please enter both username and password');
+        return;
+      }
+
       // Pass the full credentials object to the parent component
       onLogin({
         id: credentials.username === 'admin' ? 'admin_001' : `user_${Date.now()}`,
